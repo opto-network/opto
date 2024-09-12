@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = []
+
+
+[workspace.package]
+version = "0.1.0"
+rust-version = "1.81"
+edition = "2021"
+authors = ["Karim Agha"]
+license = "MIT"
+homepage = "https://opto.network"
+repository = "https://github.com/opto-network/opto"
+description = "Opto Network"
+readme = "README.md"
+publish = false
+
+[workspace.dependencies]
