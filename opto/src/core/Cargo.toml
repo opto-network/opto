@@ -10,4 +10,26 @@ repository.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[lib]
+doctest = false
+
+[features]
+default = ["std"]
+std = []
+
 [dependencies]
+scale = { workspace = true }
+blake2 = { workspace = true }
+scale-info = { workspace = true }
+hex = { workspace = true }
+derive_more = { workspace = true, features = [
+  "display",
+  "from",
+  "into",
+  "deref",
+  "as_ref",
+] }
+serde = { workspace = true, default-features = false, features = [
+  "derive",
+  "alloc",
+] }
