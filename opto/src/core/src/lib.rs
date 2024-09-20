@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod digest;
+pub mod eval;
 pub mod expression;
 pub mod object;
 pub mod predicate;
