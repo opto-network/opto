@@ -16,6 +16,7 @@ doctest = false
 [features]
 default = ["std"]
 std = []
+graph = ["petgraph", "std"]
 
 [dependencies]
 scale = { workspace = true }
@@ -33,3 +34,6 @@ serde = { workspace = true, default-features = false, features = [
   "derive",
   "alloc",
 ] }
+petgraph = { version = "0.6", features = [
+  "stable_graph",
+], default-features = false, optional = true }

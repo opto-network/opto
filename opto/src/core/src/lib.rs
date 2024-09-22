@@ -12,6 +12,7 @@ pub mod transition;
 
 pub use {
 	digest::{Digest, Hashable},
+	eval::{Context, InUse, Location, PredicateFunctor, Role},
 	expression::Expression,
 	object::Object,
 	predicate::{Predicate, PredicateId},

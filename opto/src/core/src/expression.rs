@@ -1,3 +1,5 @@
+#[cfg(feature = "graph")]
+use petgraph::prelude::*;
 use {
 	crate::{repr::AtRest, Predicate},
 	core::{
@@ -466,5 +468,304 @@ impl<P: Clone> Clone for Expression<P> {
 impl<P: Debug> core::fmt::Debug for Expression<P> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		write!(f, "{:?}", self.0)
+	}
+}
+
+/// A representation of an expression as a tree data structure that is
+/// compatible with petgraph's graph library. This is used for more complex
+/// operations that are not part of the fast-path use cases.
+///
+/// An `ExpressionTree` type is always constructed from a valid `Expression`
+/// object and it should be used as a read-only interpretation of the
+/// `Expression` structure.
+#[cfg(feature = "graph")]
+pub struct ExpressionTree<'a, P> {
+	graph: StableDiGraph<&'a Op<P>, ()>,
+	root: NodeIndex,
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> core::ops::Deref for ExpressionTree<'a, P> {
+	type Target = StableDiGraph<&'a Op<P>, ()>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.graph
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> ExpressionTree<'a, P> {
+	/// Returns a cursor to the root of the expression tree that can be used to
+	/// navigate the tree.
+	pub fn cursor(&'a self) -> ExpressionTreeCursor<'a, P> {
+		ExpressionTreeCursor {
+			graph: &self.graph,
+			root: self.root,
+		}
+	}
+
+	/// Returns a reference to the underlying petgraph data structure.
+	pub const fn graph(&'a self) -> &'a StableDiGraph<&'a Op<P>, ()> {
+		&self.graph
+	}
+
+	/// Consumes the expression tree and returns the underlying petgraph data
+	/// structure.
+	pub fn into_graph(self) -> StableDiGraph<&'a Op<P>, ()> {
+		self.graph
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P: Debug> Debug for ExpressionTree<'a, P> {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		write!(
+			f,
+			"{:?}",
+			petgraph::dot::Dot::with_config(&self.graph, &[
+				petgraph::dot::Config::EdgeNoLabel
+			])
+		)
+	}
+}
+
+/// Constructs an expression from an expression tree that is compatible with
+/// petgraph.
+#[cfg(feature = "graph")]
+impl<'a, P: Clone> TryFrom<ExpressionTree<'a, P>> for Expression<P> {
+	type Error = Error;
+
+	fn try_from(value: ExpressionTree<P>) -> Result<Self, Self::Error> {
+		let mut value = value;
+		let mut ops = Vec::with_capacity(value.graph.node_count());
+
+		fn preorder_visit<P>(
+			graph: &StableDiGraph<&Op<P>, ()>,
+			node: NodeIndex,
+			ops: &mut Vec<NodeIndex>,
+		) -> Result<(), Error> {
+			ops.push(node);
+
+			let children: Vec<_> = graph.neighbors(node).collect();
+			for child in children.into_iter().rev() {
+				preorder_visit(graph, child, ops)?;
+			}
+
+			Ok(())
+		}
+
+		preorder_visit(&value.graph, value.root, &mut ops)?;
+
+		let ops: Option<Vec<_>> = ops
+			.into_iter()
+			.map(|ix| value.graph.remove_node(ix).cloned())
+			.collect();
+		let ops = ops.ok_or(Error::MalformedExpression)?;
+
+		Ok(Expression(ops))
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> From<ExpressionTree<'a, P>>
+	for (StableDiGraph<&'a Op<P>, ()>, NodeIndex)
+{
+	fn from(value: ExpressionTree<'a, P>) -> Self {
+		(value.graph, value.root)
+	}
+}
+
+/// Attempts to convert a graph and a root node into an expression tree.
+#[cfg(feature = "graph")]
+impl<'a, P> TryFrom<(StableDiGraph<&'a Op<P>, ()>, NodeIndex)>
+	for ExpressionTree<'a, P>
+{
+	type Error = Error;
+
+	fn try_from(
+		(graph, root): (StableDiGraph<&'a Op<P>, ()>, NodeIndex),
+	) -> Result<Self, Self::Error> {
+		// ensure that this is a valid binary expression tree rooted at "root"
+		let mut stack = alloc::vec![root];
+		let mut visited = alloc::vec![false; graph.node_count()];
+		let mut count = 0;
+
+		fn visit<P>(
+			graph: &StableDiGraph<&Op<P>, ()>,
+			node: NodeIndex,
+			stack: &mut Vec<NodeIndex>,
+			visited: &mut Vec<bool>,
+			count: &mut usize,
+		) -> Result<(), Error> {
+			if visited[node.index()] {
+				return Err(Error::CycleDetected);
+			}
+
+			visited[node.index()] = true;
+			*count += 1;
+
+			// ensure that the node has the correct number of children
+			match graph.node_weight(node) {
+				Some(Op::Predicate(_)) => {
+					if graph.neighbors(node).count() != 0 {
+						return Err(Error::InvalidGraph);
+					}
+				}
+				Some(Op::And) | Some(Op::Or) => {
+					if graph.neighbors(node).count() != 2 {
+						return Err(Error::InvalidGraph);
+					}
+				}
+				Some(Op::Not) => {
+					if graph.neighbors(node).count() != 1 {
+						return Err(Error::InvalidGraph);
+					}
+				}
+				None => return Err(Error::InvalidGraph),
+			}
+
+			for child in graph.neighbors(node) {
+				stack.push(child);
+				visit(graph, child, stack, visited, count)?;
+			}
+
+			Ok(())
+		}
+
+		// traverse the graph and ensure that it is a valid
+		// binary expression tree
+		visit(&graph, root, &mut stack, &mut visited, &mut count)?;
+
+		if count != graph.node_count() {
+			return Err(Error::InvalidGraph);
+		}
+
+		Ok(Self { graph, root })
+	}
+}
+
+/// This is used to navigate the expression tree.
+///
+/// It can be used with any graph algorithms that are compatible
+/// with the `petgraph` library. This structure is cheap to clone
+/// and copy.
+#[cfg(feature = "graph")]
+pub struct ExpressionTreeCursor<'a, P> {
+	graph: &'a StableDiGraph<&'a Op<P>, ()>,
+	root: NodeIndex,
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> Clone for ExpressionTreeCursor<'a, P> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> Copy for ExpressionTreeCursor<'a, P> {}
+
+/// Implements the navigation API for the expression tree.
+///
+/// This type is implemented by the ExpressionTree and ExpressionTreeCursor,
+/// in order to provide a common API for navigating the tree by copy and by
+/// reference. Most likely you will want to use the ExpressionTreeCursor impl.
+#[cfg(feature = "graph")]
+pub trait ExpressionTreeNav<'d, P>
+where
+	Self: Sized,
+{
+	/// Returns the first child of the current node.
+	///
+	/// This returns the first child for binary operators and the
+	/// only child for unary operators. For leaf nodes, this returns None.
+	fn first(self) -> Option<Self>;
+
+	/// Returns the second child of the current node.
+	///
+	/// This returns the second child for binary operators and None for
+	/// unary operators and leaf nodes.
+	fn second(self) -> Option<Self>;
+
+	/// Returns the parent of the current node.
+	///
+	/// None for the root node.
+	fn parent(self) -> Option<Self>;
+
+	/// Returns the operator at the current node.
+	fn op(&self) -> &'d Op<P>;
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> ExpressionTreeNav<'a, P> for ExpressionTree<'a, P> {
+	fn first(self) -> Option<Self> {
+		let mut children = self.graph.neighbors(self.root);
+		let first_child = children.next()?;
+		Some(ExpressionTree {
+			graph: self.graph,
+			root: first_child,
+		})
+	}
+
+	fn second(self) -> Option<Self> {
+		let mut children = self.graph.neighbors(self.root);
+		let _first_child = children.next()?;
+		let second_child = children.next()?;
+		Some(ExpressionTree {
+			graph: self.graph,
+			root: second_child,
+		})
+	}
+
+	fn parent(self) -> Option<Self> {
+		let parent = self
+			.graph
+			.neighbors_directed(self.root, petgraph::Direction::Incoming)
+			.next()?;
+		Some(ExpressionTree {
+			graph: self.graph,
+			root: parent,
+		})
+	}
+
+	fn op(&self) -> &'a Op<P> {
+		self.graph.node_weight(self.root).unwrap()
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<'a, P> ExpressionTreeNav<'a, P> for ExpressionTreeCursor<'a, P> {
+	fn first(self) -> Option<Self> {
+		let mut children = self.graph.neighbors(self.root);
+		let first_child = children.next()?;
+		Some(ExpressionTreeCursor {
+			graph: self.graph,
+			root: first_child,
+		})
+	}
+
+	fn second(self) -> Option<Self> {
+		let mut children = self.graph.neighbors(self.root);
+		let _first_child = children.next()?;
+		let second_child = children.next()?;
+		Some(ExpressionTreeCursor {
+			graph: self.graph,
+			root: second_child,
+		})
+	}
+
+	fn parent(self) -> Option<Self> {
+		let parent = self
+			.graph
+			.neighbors_directed(self.root, petgraph::Direction::Incoming)
+			.next()?;
+		Some(ExpressionTreeCursor {
+			graph: self.graph,
+			root: parent,
+		})
+	}
+
+	fn op(&self) -> &'a Op<P> {
+		self.graph.node_weight(self.root).unwrap()
 	}
 }
