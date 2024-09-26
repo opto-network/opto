@@ -19,3 +19,6 @@ pub use {
 	repr::Repr,
 	transition::Transition,
 };
+
+#[cfg(any(test, feature = "test"))]
+pub mod test;

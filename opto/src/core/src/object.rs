@@ -103,3 +103,54 @@ impl<P: Predicate + TypeInfo + 'static, D: TypeInfo + 'static> TypeInfo
 			)
 	}
 }
+
+#[cfg(test)]
+pub mod tests {
+	use {
+		super::{super::predicate::PredicateId, *},
+		alloc::vec,
+		scale::{Decode, Encode},
+	};
+
+	pub fn test_object(shift: u32) -> Object<AtRest, Vec<u8>> {
+		let pred2: Expression<_> = AtRest {
+			id: PredicateId(2 + shift),
+			params: vec![3 + shift as u8, 4 + shift as u8, 5 + shift as u8],
+		}
+		.into();
+
+		let pred3: Expression<_> = AtRest {
+			id: PredicateId(3 + shift),
+			params: vec![6 + shift as u8, 7 + shift as u8, 8 + shift as u8],
+		}
+		.into();
+
+		let pred4: Expression<_> = AtRest {
+			id: PredicateId(4 + shift),
+			params: vec![9 + shift as u8, 11 + shift as u8, 12 + shift as u8],
+		}
+		.into();
+
+		Object {
+			policies: vec![AtRest {
+				id: PredicateId(shift),
+				params: vec![1 + shift as u8, 2 + shift as u8, 3 + shift as u8],
+			}],
+			unlock: pred2 & (pred3 | pred4),
+			data: vec![13 + shift as u8, 14 + shift as u8, 15 + shift as u8],
+		}
+	}
+
+	#[test]
+	fn encode_decode_smoke() {
+		let object = test_object(0);
+		let size_hint = object.size_hint();
+		let mut encoded = Vec::with_capacity(object.size_hint());
+		object.encode_to(&mut encoded);
+		assert!(encoded.len() <= size_hint);
+
+		let decoded =
+			Object::<AtRest, Vec<u8>>::decode(&mut encoded.as_slice()).unwrap();
+		assert_eq!(object, decoded);
+	}
+}

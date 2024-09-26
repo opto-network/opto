@@ -471,6 +471,81 @@ impl<P: Debug> core::fmt::Debug for Expression<P> {
 	}
 }
 
+/// Pretty print in natural infix notation
+impl<P: Display> core::fmt::Display for Expression<P> {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		fn write_subtree<P: Display>(
+			tokens: &mut core::slice::Iter<Op<P>>,
+		) -> String {
+			let Some(next) = tokens.next() else {
+				return String::new();
+			};
+
+			if !next.is_operator() {
+				return alloc::format!("{next}");
+			}
+
+			let left_operand = write_subtree(tokens);
+			let righ_operand = if next.is_binary() {
+				write_subtree(tokens)
+			} else {
+				String::new()
+			};
+
+			if next.is_unary() {
+				alloc::format!("{}({})", next, left_operand)
+			} else {
+				alloc::format!("({} {} {})", left_operand, next, righ_operand)
+			}
+		}
+
+		write!(f, "{}", write_subtree(&mut self.0.iter()))
+	}
+}
+
+#[cfg(feature = "graph")]
+impl<P> Expression<P> {
+	/// Converts the expression tree to a tree data structure backed by petgraph.
+	///
+	/// This is used for more complex operations on the tree such as pattern
+	/// matching, compression, and other graph algorithms.
+	pub fn to_tree(&self) -> Result<ExpressionTree<P>, Error> {
+		let mut graph = StableDiGraph::new();
+		let mut ops = self.0.iter().rev().collect::<Vec<_>>();
+
+		fn build_tree<'a, P>(
+			graph: &mut StableDiGraph<&'a Op<P>, ()>,
+			ops: &mut Vec<&'a Op<P>>,
+		) -> Result<NodeIndex, Error> {
+			let Some(op) = ops.pop() else {
+				return Err(Error::MalformedExpression);
+			};
+
+			if op.is_binary() {
+				let node = graph.add_node(op);
+				let left = build_tree(graph, ops)?;
+				let right = build_tree(graph, ops)?;
+				graph.add_edge(node, left, ());
+				graph.add_edge(node, right, ());
+				Ok(node)
+			} else if op.is_unary() {
+				let node = graph.add_node(op);
+				let child = build_tree(graph, ops)?;
+				graph.add_edge(node, child, ());
+				Ok(node)
+			} else if op.is_leaf() {
+				Ok(graph.add_node(op))
+			} else {
+				Err(Error::MalformedExpression)
+			}
+		}
+
+		let root = build_tree(&mut graph, &mut ops)?;
+
+		Ok(ExpressionTree { graph, root })
+	}
+}
+
 /// A representation of an expression as a tree data structure that is
 /// compatible with petgraph's graph library. This is used for more complex
 /// operations that are not part of the fast-path use cases.
@@ -767,5 +842,164 @@ impl<'a, P> ExpressionTreeNav<'a, P> for ExpressionTreeCursor<'a, P> {
 
 	fn op(&self) -> &'a Op<P> {
 		self.graph.node_weight(self.root).unwrap()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use {
+		super::{Expression, Op},
+		crate::Predicate,
+		alloc::{
+			format,
+			string::{String, ToString},
+			vec,
+		},
+		core::convert::TryInto,
+	};
+
+	impl Predicate for i32 {}
+
+	#[cfg(feature = "graph")]
+	use super::{ExpressionTree, ExpressionTreeNav};
+
+	fn test_expression() -> Expression<i32> {
+		// 6 leaf nodes
+		let leaf1 = super::Expression::from(1);
+		let leaf2 = super::Expression::from(2);
+		let leaf3 = super::Expression::from(3);
+		let leaf4 = super::Expression::from(4);
+		let leaf5 = super::Expression::from(5);
+		let leaf6 = super::Expression::from(6);
+
+		// complex expression tree using all leaf nodes
+		leaf1 & (leaf2 | !leaf3) | (leaf4 | leaf5) & !leaf6
+	}
+
+	#[test]
+	fn expression_tree_print() {
+		let expression = test_expression();
+		let infix: String = expression.to_string();
+		let prefix = alloc::format!("{:?}", expression);
+
+		assert_eq!(infix, "((1 AND (2 OR NOT(3))) OR ((4 OR 5) AND NOT(6)))");
+		assert_eq!(prefix, "[OR, AND, 1, OR, 2, NOT, 3, AND, OR, 4, 5, NOT, 6]");
+	}
+
+	#[test]
+	fn expression_inflix_print() {
+		use super::*;
+
+		let leaf1 = Expression::from(1);
+		let leaf2 = Expression::from(2);
+		let leaf3 = Expression::from(3);
+
+		let expression = leaf1 | (leaf2 & !leaf3);
+
+		assert_eq!(format!("{}", expression), "(1 OR (2 AND NOT(3)))");
+	}
+
+	#[test]
+	fn expression_debug_print() {
+		use super::*;
+
+		let leaf1 = Expression::from(1);
+		let leaf2 = Expression::from(2);
+		let leaf3 = Expression::from(3);
+		let leaf4 = Expression::from(4);
+
+		let expression = leaf1 | ((leaf2 & !leaf3) & !leaf4);
+
+		assert_eq!(
+			format!("{:?}", expression),
+			"[OR, 1, AND, AND, 2, NOT, 3, NOT, 4]"
+		);
+	}
+
+	#[cfg(feature = "graph")]
+	#[test]
+	fn expression_to_graph() {
+		let expression = test_expression();
+		let graph = expression.to_tree().unwrap();
+		let cursor = graph.cursor();
+
+		assert_eq!(cursor.op(), &Op::Or);
+
+		let left = cursor.second().unwrap();
+		assert_eq!(left.op(), &Op::And);
+
+		let left_left = left.second().unwrap();
+		assert_eq!(left_left.op(), &Op::Predicate(1));
+		assert!(left_left.op().is_leaf());
+
+		let left_left_left = left_left.second();
+		assert!(left_left_left.is_none());
+
+		let left_left_right = left_left.first();
+		assert!(left_left_right.is_none());
+
+		let left_right = left.first().unwrap();
+		assert_eq!(left_right.op(), &Op::Or);
+
+		let left_right_left = left_right.second().unwrap();
+		assert_eq!(left_right_left.op(), &Op::Predicate(2));
+
+		let left_right_right = left_right.first().unwrap();
+		assert_eq!(left_right_right.op(), &Op::Not);
+
+		let left_right_right_left = left_right_right.first().unwrap();
+		assert_eq!(left_right_right_left.op(), &Op::Predicate(3));
+
+		let left_right_right_right = left_right_right.second();
+		assert!(left_right_right_right.is_none());
+
+		let right = cursor.first().unwrap();
+		assert_eq!(right.op(), &Op::And);
+
+		let right_left = right.second().unwrap();
+		assert_eq!(right_left.op(), &Op::Or);
+
+		let right_left_left = right_left.second().unwrap();
+		assert_eq!(right_left_left.op(), &Op::Predicate(4));
+
+		let right_left_right = right_left.first().unwrap();
+		assert_eq!(right_left_right.op(), &Op::Predicate(5));
+
+		let right_right = right.first().unwrap();
+		assert_eq!(right_right.op(), &Op::Not);
+
+		let right_right_left = right_right.first().unwrap();
+		assert_eq!(right_right_left.op(), &Op::Predicate(6));
+
+		let right_right_right = right_right.second();
+		assert!(right_right_right.is_none());
+	}
+
+	#[cfg(feature = "graph")]
+	#[test]
+	fn expression_to_graph_dot_print() {
+		let expr = test_expression();
+		let graph = expr.to_tree().unwrap();
+		let generated = format!("{graph:?}").replace(" ", "").replace("\n", "");
+		let expected = r#"digraph{0[label="OR"]1[label="AND"]2[label="1"]3[label="OR"]4[label="2"]5[label="NOT"]6[label="3"]7[label="AND"]8[label="OR"]9[label="4"]10[label="5"]11[label="NOT"]12[label="6"]5->6[]3->4[]3->5[]1->2[]1->3[]8->9[]8->10[]11->12[]7->8[]7->11[]0->1[]0->7[]}"#;
+		assert_eq!(generated, expected);
+	}
+
+	#[cfg(feature = "graph")]
+	#[test]
+	fn expression_tree_to_expression() {
+		let expr1 = test_expression();
+		let expr_tree = expr1.to_tree().unwrap();
+		let (graph, root) = expr_tree.into();
+		let expr2: ExpressionTree<i32> = (graph, root).try_into().unwrap();
+		let expr2: Expression<_> = expr2.try_into().unwrap();
+		assert_eq!(expr1, expr2);
+	}
+
+	#[test]
+	fn invalid_preorder_expression() {
+		let invalid = vec![Op::And, Op::Predicate(1i32), Op::Or];
+		let expr: Result<Expression<i32>, _> = invalid.try_into();
+		assert!(matches!(expr, Err(super::Error::MalformedExpression)));
 	}
 }
