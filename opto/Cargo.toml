@@ -11,5 +11,16 @@ description.workspace = true
 readme.workspace = true
 publish.workspace = true
 
+
+[lib]
+doctest = false
+crate-type = ["rlib"]
+
+
+[features]
+default = ["std"]
+std = []
+test = ["opto-core/test"]
+
 [dependencies]
-opto-core = { path = "./src/core" }
+opto-core = { path = "./src/core", default-features = false }
