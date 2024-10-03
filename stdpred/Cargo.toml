@@ -12,3 +12,19 @@ publish.workspace = true
 description = "Opto Standard Predicates Library"
 
 [dependencies]
+opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false }
+
+scale.workspace = true
+blake2.workspace = true
+
+[dev-dependencies]
+opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [
+  "test",
+] }
+hex-literal = "0.4"
+hex = "0.4"
+
+[build-dependencies]
+opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [
+  "build",
+] }

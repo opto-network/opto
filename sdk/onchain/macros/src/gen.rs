@@ -3,8 +3,8 @@ use {proc_macro2::TokenStream, quote::quote};
 pub fn predicate_context() -> TokenStream {
 	quote! {
 		use ::opto::{
-			Object, Transition, Expanded, Decode,
-			predicate::{Location, Context, AtRest, Role},
+			Object, Transition, Expanded, Decode, AtRest,
+			eval::{Location, Context, Role},
 		};
 
 		let mut transision = unsafe {
