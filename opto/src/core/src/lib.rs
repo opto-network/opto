@@ -17,6 +17,7 @@ pub use {
 	object::Object,
 	predicate::{Predicate, PredicateId},
 	repr::Repr,
+	scale as codec,
 	transition::Transition,
 };
 

@@ -1,6 +1,6 @@
 use {
 	crate::{
-		alloc::{collections::VecDeque, vec::Vec},
+		alloc::{boxed::Box, collections::VecDeque, vec::Vec},
 		digest::DigestBuilder,
 		expression::{self, Op},
 		repr::{

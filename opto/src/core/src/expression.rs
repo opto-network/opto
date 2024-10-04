@@ -2,6 +2,7 @@
 use petgraph::prelude::*;
 use {
 	crate::{repr::AtRest, Predicate},
+	alloc::{string::String, vec::Vec},
 	core::{
 		fmt::{Debug, Display},
 		ops::Not,

@@ -14,6 +14,7 @@ extern crate alloc;
 #[macro_use]
 mod utils;
 
+pub mod meta;
 pub mod util;
 
 #[derive(Debug)]
@@ -28,6 +29,11 @@ pub fn native_impl_factory(
 	pred: &opto::repr::AtRest,
 ) -> Result<opto::PredicateFunctor, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
+		// meta
+		meta::ids::ipfs => meta::ipfs,
+		meta::ids::p2ptopic => meta::p2ptopic,
+		meta::ids::multiaddr => meta::multiaddr,
+
 		// util
 		util::ids::constant => util::constant,
 		util::ids::nonce => util::nonce,

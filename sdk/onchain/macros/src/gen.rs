@@ -3,15 +3,17 @@ use {proc_macro2::TokenStream, quote::quote};
 pub fn predicate_context() -> TokenStream {
 	quote! {
 		use ::opto::{
-			Object, Transition, Expanded, Decode, AtRest,
+			Object, Transition,
+			repr::AtRest,
 			eval::{Location, Context, Role},
+			codec::Decode,
 		};
 
 		let mut transision = unsafe {
 			core::slice::from_raw_parts(transition_ptr, transition_len as usize)
 		};
 
-		let transition: Transition<Expanded> = Decode::decode(&mut transision)
+		let transition: Transition = Decode::decode(&mut transision)
 			.expect("Failed to decode transition bytes");
 
 
@@ -23,7 +25,7 @@ pub fn predicate_context() -> TokenStream {
 		};
 
 		let index = object_index as usize;
-		let object: &Object<AtRest, alloc::vec::Vec<u8>> = match location {
+		let object: &Object = match location {
 			Location::Input => &transition.inputs[index],
 			Location::Ephemeral => &transition.ephemerals[index],
 			Location::Output => &transition.outputs[index],
