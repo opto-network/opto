@@ -14,6 +14,7 @@ extern crate alloc;
 #[macro_use]
 mod utils;
 
+pub mod asset;
 pub mod meta;
 pub mod util;
 
@@ -37,6 +38,9 @@ pub fn native_impl_factory(
 		// util
 		util::ids::constant => util::constant,
 		util::ids::nonce => util::nonce,
+
+		// economy
+		asset::ids::coin => asset::coin,
 
 		_ => return Err(PredicateNotFound),
 	}))
