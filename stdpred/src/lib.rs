@@ -15,6 +15,7 @@ extern crate alloc;
 mod utils;
 
 pub mod asset;
+pub mod intent;
 pub mod meta;
 pub mod util;
 
@@ -30,6 +31,11 @@ pub fn native_impl_factory(
 	pred: &opto::repr::AtRest,
 ) -> Result<opto::PredicateFunctor, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
+		// intents
+		intent::ids::output => intent::output,
+		intent::ids::ephemeral => intent::ephemeral,
+		intent::ids::input => intent::input,
+
 		// meta
 		meta::ids::ipfs => meta::ipfs,
 		meta::ids::p2ptopic => meta::p2ptopic,
