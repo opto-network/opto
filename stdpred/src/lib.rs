@@ -15,6 +15,7 @@ extern crate alloc;
 mod utils;
 
 pub mod asset;
+pub mod crypto;
 pub mod intent;
 pub mod meta;
 pub mod util;
@@ -31,6 +32,14 @@ pub fn native_impl_factory(
 	pred: &opto::repr::AtRest,
 ) -> Result<opto::PredicateFunctor, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
+		// util
+		util::ids::constant => util::constant,
+		util::ids::nonce => util::nonce,
+
+		// crypto
+		crypto::ids::ed25519 => crypto::ed25519,
+		crypto::ids::sr25519 => crypto::sr25519,
+
 		// intents
 		intent::ids::output => intent::output,
 		intent::ids::ephemeral => intent::ephemeral,
@@ -40,10 +49,6 @@ pub fn native_impl_factory(
 		meta::ids::ipfs => meta::ipfs,
 		meta::ids::p2ptopic => meta::p2ptopic,
 		meta::ids::multiaddr => meta::multiaddr,
-
-		// util
-		util::ids::constant => util::constant,
-		util::ids::nonce => util::nonce,
 
 		// economy
 		asset::ids::coin => asset::coin,

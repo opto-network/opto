@@ -315,6 +315,24 @@ impl Transition<Expanded> {
 				.collect::<Result<_, _>>()?,
 		})
 	}
+
+	/// Returns a hash of the state transition without ephemeral objects.
+	pub fn digest_for_signing(&self) -> Digest {
+		let mut hasher = Digest::hasher();
+
+		// hash all inputs's hashes
+		for obj in self.inputs.iter() {
+			hasher.update(obj.digest());
+		}
+
+		// hash all outputs
+		for obj in self.outputs.iter() {
+			hasher.update(obj.digest());
+		}
+
+		// this is the message that will be used to verify the signature
+		hasher.finalize().into()
+	}
 }
 
 impl Transition<Compact> {

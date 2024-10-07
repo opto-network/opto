@@ -36,3 +36,7 @@ multihash = { version = "0.19", features = [
   "scale-codec",
   "alloc",
 ], default-features = false }
+ed25519-dalek = { version = "2", default-features = false }
+schnorrkel = { version = "0.11", default-features = false, features = [
+  "alloc",
+] }

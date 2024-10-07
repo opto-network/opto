@@ -16,6 +16,8 @@ opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = f
 
 scale.workspace = true
 blake2.workspace = true
+ed25519-dalek.workspace = true
+schnorrkel.workspace = true
 
 [dev-dependencies]
 opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [
