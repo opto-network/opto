@@ -39,6 +39,7 @@ pub fn native_impl_factory(
 		// crypto
 		crypto::ids::ed25519 => crypto::ed25519,
 		crypto::ids::sr25519 => crypto::sr25519,
+		crypto::ids::blake2b_256 => crypto::blake2b_256,
 
 		// intents
 		intent::ids::output => intent::output,
