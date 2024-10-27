@@ -18,6 +18,14 @@ scale.workspace = true
 blake2.workspace = true
 ed25519-dalek.workspace = true
 schnorrkel.workspace = true
+ark-serialize.workspace = true
+ark-ec.workspace = true
+ark-ff.workspace = true
+ark-groth16.workspace = true
+ark-bn254.workspace = true
+sha2.workspace = true
+num-bigint.workspace = true
+cid.workspace = true
 
 [dev-dependencies]
 opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [

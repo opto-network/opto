@@ -30,7 +30,10 @@ serde = { version = "1.0", features = [
   "alloc",
 ], default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
-cid = { version = "0.11", features = ["scale-codec"], default-features = false }
+cid = { version = "0.11", features = [
+  "scale-codec",
+  "alloc",
+], default-features = false }
 integer-encoding = { version = "4.0.2", default-features = false }
 multihash = { version = "0.19", features = [
   "scale-codec",
@@ -40,3 +43,10 @@ ed25519-dalek = { version = "2", default-features = false }
 schnorrkel = { version = "0.11", default-features = false, features = [
   "alloc",
 ] }
+ark-serialize = { version = "0.4", default-features = false }
+ark-ec = { version = "0.4", default-features = false }
+ark-ff = { version = "0.4", default-features = false }
+ark-groth16 = { version = "0.4", default-features = false }
+ark-bn254 = { version = "0.4", default-features = false, features = ["curve"] }
+sha2 = { version = "0.10", default-features = false }
+num-bigint = { version = "0.4", default-features = false }
