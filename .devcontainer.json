@@ -1,0 +1,33 @@
+{
+	"name": "Rust",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"features": {
+		"devwasm.azurecr.io/dev-wasm/dev-wasm-feature/rust-wasi:0": {}
+	},
+	"mounts": [
+		{
+			"source": "devcontainer-cargo-cache-${devcontainerId}",
+			"target": "/usr/local/cargo",
+			"type": "volume"
+		},
+		{ // cargo build cache
+			"source": "${localWorkspaceFolder}/target",
+			"target": "${containerWorkspaceFolder}/target",
+			"type": "bind"
+		},
+		{
+			"source": "${localEnv:HOME}/.ssh",
+			"target": "/home/vscode/.ssh,readonly",
+			"type": "bind"
+		}
+	],
+	"forwardPorts": [
+		9944, // Substrate
+		80, // HTTP
+		443, // HTTPS
+		22 // SSH
+	],
+	"remoteUser": "vscode"
+}

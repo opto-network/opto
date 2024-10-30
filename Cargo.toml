@@ -17,10 +17,12 @@ publish = false
 
 [workspace.dependencies]
 blake2 = { version = "0.10", default-features = false }
+tokio = { version = "1.41", features = ["full"] }
 scale = { version = "3.6", features = [
   "derive",
   "max-encoded-len",
 ], default-features = false, package = "parity-scale-codec" }
+clap = { version = "4.5", features = ["derive", "env"] }
 scale-info = { version = "2.11", default-features = false, features = [
   "derive",
 ] }
@@ -43,10 +45,12 @@ ed25519-dalek = { version = "2", default-features = false }
 schnorrkel = { version = "0.11", default-features = false, features = [
   "alloc",
 ] }
-ark-serialize = { version = "0.4", default-features = false }
-ark-ec = { version = "0.4", default-features = false }
-ark-ff = { version = "0.4", default-features = false }
-ark-groth16 = { version = "0.4", default-features = false }
-ark-bn254 = { version = "0.4", default-features = false, features = ["curve"] }
+ark-serialize = { version = "0.5", default-features = false }
+ark-ec = { version = "0.5", default-features = false }
+ark-ff = { version = "0.5", default-features = false }
+ark-groth16 = { version = "0.5", default-features = false }
+ark-bn254 = { version = "0.5", default-features = false, features = ["curve"] }
 sha2 = { version = "0.10", default-features = false }
 num-bigint = { version = "0.4", default-features = false }
+anyhow = { version = "1.0" }
+thiserror = { version = "2.0" }
