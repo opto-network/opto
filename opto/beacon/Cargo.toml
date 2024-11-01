@@ -13,3 +13,5 @@ publish.workspace = true
 
 [dependencies]
 opto-p2p = { path = "../p2p" }
+
+clap = { workspace = true }

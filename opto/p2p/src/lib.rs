@@ -106,7 +106,7 @@ pub struct Network {
 }
 
 #[derive(NetworkBehaviour)]
-struct BorgBehaviour {
+struct OptoBehaviour {
 	ping: ping::Behaviour,
 	identify: identify::Behaviour,
 	gossipsub: gossipsub::Behaviour,
@@ -116,7 +116,7 @@ struct BorgBehaviour {
 static OBJECTS_TOPIC: OnceLock<Sha256Topic> = OnceLock::new();
 const IPFS_PROTO_NAME: StreamProtocol = StreamProtocol::new("/ipfs/kad/1.0.0");
 
-impl BorgBehaviour {
+impl OptoBehaviour {
 	pub fn new(keypair: &Keypair, config: &Config) -> Self {
 		let peer_id = keypair.public().to_peer_id();
 
@@ -154,7 +154,7 @@ impl Network {
 				yamux::Config::default,
 			)?
 			.with_dns()?
-			.with_behaviour(|keypair| BorgBehaviour::new(keypair, &config))
+			.with_behaviour(|keypair| OptoBehaviour::new(keypair, &config))
 			.expect("behaviour constructor does not fail")
 			.with_swarm_config(|c| {
 				c.with_idle_connection_timeout(config.idle_timeout)
@@ -204,7 +204,7 @@ impl Default for Network {
 }
 
 async fn swarm_loop(
-	swarm: Swarm<BorgBehaviour>,
+	swarm: Swarm<OptoBehaviour>,
 	events_tx: UnboundedSender<NetworkEvent>,
 	events_rx: UnboundedReceiver<NetworkEvent>,
 ) {
@@ -234,7 +234,7 @@ async fn swarm_loop(
 				}
 			},
 			event = swarm.select_next_some() => match event {
-				SwarmEvent::Behaviour(BorgBehaviourEvent::Gossipsub(
+				SwarmEvent::Behaviour(OptoBehaviourEvent::Gossipsub(
 					gossipsub::Event::Message { message, .. })) => {
 					if message.topic == OBJECTS_TOPIC.get().unwrap().hash() {
 						match NetworkEvent::decode(&mut message.data.as_slice()) {

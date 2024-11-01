@@ -11,17 +11,23 @@ description.workspace = true
 readme.workspace = true
 publish.workspace = true
 
+[features]
+default = ["std"]
+std = ["runtime/std", "opto-core/std", "frame/std"]
+
 [dependencies]
 runtime = { path = "./runtime", package = "opto-chain-runtime", default-features = false }
 opto-core = { path = "../core", package = "opto-core", default-features = false }
 
+clap = { workspace = true }
 tokio = { workspace = true }
 futures = { version = "0.3", features = [
   "thread-pool",
 ], default-features = false }
+serde_json = { workspace = true }
 
 # sc-basic-authorship = { version = "0.44.0" }
-# sc-cli = { version = "0.46" }
+sc-cli = { version = "0.46" }
 # sc-client-api = { version = "37.0" }
 # sc-consensus = { version = "0.43.0" }
 # sc-consensus-manual-seal = { version = "0.45.0" }
@@ -29,7 +35,7 @@ futures = { version = "0.3", features = [
 # sc-network = { version = "0.44.0" }
 # sc-offchain = { version = "39.0.0" }
 # sc-rpc-api = { version = "0.43.0" }
-# sc-service = { version = "0.45" }
+sc-service = { version = "0.45" }
 # sc-telemetry = { version = "24.0.0" }
 # sc-transaction-pool = { version = "37.0" }
 # sc-transaction-pool-api = { version = "37.0" }
@@ -39,7 +45,7 @@ futures = { version = "0.3", features = [
 # sp-block-builder = { version = "34.0" }
 # sp-blockchain = { version = "37.0.1" }
 # sp-io = { version = "38.0.0" }
-# sp-keyring = { version = "39.0" }
+sp-keyring = { version = "39.0" }
 # sp-runtime = { version = "39.0.1" }
 # sp-timestamp = { version = "34.0" }
 # sp-consensus = { version = "0.40.0" }
@@ -49,9 +55,9 @@ futures = { version = "0.3", features = [
 
 # frame-support = { version = "38.0.0", default-features = false }
 # frame-system = { version = "38.0", default-features = false }
-# frame = { version = "0.7.0", package = "polkadot-sdk-frame", features = [
-#   "experimental",
-# ], default-features = false }
+frame = { version = "0.7.0", package = "polkadot-sdk-frame", features = [
+  "experimental",
+], default-features = false }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "11.0" }
