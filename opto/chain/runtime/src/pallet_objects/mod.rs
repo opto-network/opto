@@ -1,5 +1,6 @@
 pub mod config;
 pub use pallet::*;
+mod vm;
 
 #[frame::pallet]
 pub mod pallet {
