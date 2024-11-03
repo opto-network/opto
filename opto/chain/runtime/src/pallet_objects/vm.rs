@@ -8,8 +8,6 @@ use {
 	frame::{log::error, prelude::*},
 	frame_support::PalletError,
 	opto_core::{
-		expression::Op,
-		repr::AtRest,
 		Context,
 		Location,
 		PredicateFunctor,
@@ -323,7 +321,7 @@ mod tests {
 		let invalid_bytecode = [0x00, 0x01, 0x02];
 		assert!(matches!(
 			PredicateMachine::validate(&invalid_bytecode),
-			Err(Error::InvalidCode)
+			Err(super::Error::InvalidCode)
 		));
 	}
 

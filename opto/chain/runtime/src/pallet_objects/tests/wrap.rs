@@ -1,0 +1,458 @@
+use {
+	super::{
+		utils::create_asset,
+		COIN_PREDICATE,
+		DEFAULT_SIGNATURE_PREDICATE,
+		*,
+	},
+	crate::{
+		pallet_objects::{
+			self,
+			tests::{
+				utils::{
+					install_test_predicates,
+					mint_asset,
+					mint_native_token,
+					run_to_block,
+				},
+				NONCE_PREDICATE,
+				PREIMAGE_PREDICATE,
+				VAULT,
+			},
+		},
+		*,
+	},
+	frame::testing_prelude::*,
+	opto_core::{AtRest, Expression, Hashable, Object, Op, PredicateId},
+	sp_core::blake2_64,
+	sp_keyring::AccountKeyring,
+};
+
+#[test]
+fn empty_state_has_no_objects() {
+	TestState::new_empty().execute_with(|| {
+		assert_eq!(pallet_objects::Objects::<Runtime>::iter().count(), 0);
+	});
+}
+
+#[test]
+fn wrap_asset_into_object_default_unlock() {
+	const ASSET_ID: u32 = 1;
+	const TOTAL_SUPPLY: u64 = 100000000;
+	const WRAPPED_AMOUNT: u64 = 300000;
+	const NATIVE_TOKEN_BALANCE: u64 = 1000;
+
+	let nonce = blake2_64(
+		&[
+			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+			0u32.encode().as_slice(),
+		]
+		.concat(),
+	);
+
+	let expected_object = Object {
+		policies: vec![
+			AtRest {
+				id: COIN_PREDICATE,
+				params: ASSET_ID.encode(),
+			},
+			AtRest {
+				id: NONCE_PREDICATE,
+				params: nonce.to_vec(),
+			},
+		],
+		unlock: vec![Op::Predicate(AtRest {
+			id: DEFAULT_SIGNATURE_PREDICATE,
+			params: AccountKeyring::Alice.to_account_id().encode(),
+		})]
+		.try_into()
+		.expect("default unlock expression is invalid"),
+		data: WRAPPED_AMOUNT.encode(),
+	};
+
+	let expected_object_digest = expected_object.digest();
+
+	TestState::new_empty().execute_with(|| {
+		// events are not emitted on the genesis block
+		// so here we're setting the block number to 1
+		System::set_block_number(1);
+
+		assert_eq!(
+			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
+			None
+		);
+
+		// This is for paying the fee for wrapping the asset
+		let native_balance = mint_native_token(
+			&AccountKeyring::Alice.to_account_id(),
+			NATIVE_TOKEN_BALANCE,
+		)
+		.expect("minting native token failed");
+		assert_eq!(native_balance, NATIVE_TOKEN_BALANCE);
+
+		create_asset(ASSET_ID, AccountKeyring::Alice.to_account_id(), true)
+			.expect("asset creation failed");
+		mint_asset(
+			ASSET_ID,
+			AccountKeyring::Alice.to_account_id(),
+			AccountKeyring::Alice.to_account_id(),
+			TOTAL_SUPPLY,
+		)
+		.expect("asset minting failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let initial_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		let total_supply = pallet_assets::Pallet::<Runtime>::total_supply(1);
+
+		assert_eq!(initial_balance, TOTAL_SUPPLY);
+		assert_eq!(total_supply, TOTAL_SUPPLY);
+
+		pallet_objects::Pallet::<Runtime>::wrap(
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
+			ASSET_ID,
+			WRAPPED_AMOUNT,
+			None,
+		)
+		.expect("asset wrap failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, WRAPPED_AMOUNT);
+
+		let remaining_balance = pallet_assets::Pallet::<Runtime>::balance(
+			ASSET_ID,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		assert_eq!(remaining_balance, TOTAL_SUPPLY - WRAPPED_AMOUNT);
+
+		let object =
+			pallet_objects::Objects::<Runtime>::get(expected_object_digest)
+				.expect("object not found");
+
+		assert_eq!(object.instance_count, 1);
+		assert_eq!(object.object, expected_object);
+
+		System::assert_has_event(
+			pallet_objects::Event::<Runtime>::ObjectCreated {
+				object: expected_object.clone(),
+			}
+			.into(),
+		);
+
+		System::assert_has_event(
+			pallet_assets::Event::<Runtime>::Transferred {
+				asset_id: 1,
+				from: AccountKeyring::Alice.to_account_id(),
+				to: VAULT,
+				amount: WRAPPED_AMOUNT,
+			}
+			.into(),
+		);
+	});
+}
+
+#[test]
+fn wrap_asset_into_object_custom_unlock() {
+	const ASSET_ID: u32 = 1;
+	const TOTAL_SUPPLY: u64 = 100000000;
+	const WRAPPED_AMOUNT: u64 = 300000;
+	const NATIVE_TOKEN_BALANCE: u64 = 1000;
+
+	let custom_unlock_expression: Expression<AtRest> = vec![
+		Op::Or,
+		Op::Predicate(AtRest {
+			id: PREIMAGE_PREDICATE,
+			params: b"random-preimage".digest().encode(),
+		}),
+		Op::Predicate(AtRest {
+			id: DEFAULT_SIGNATURE_PREDICATE,
+			params: AccountKeyring::Alice.to_account_id().encode(),
+		}),
+	]
+	.try_into()
+	.expect("unlock expression is invalid");
+
+	let nonce = blake2_64(
+		&[
+			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+			0u32.encode().as_slice(), // substrate nonce
+		]
+		.concat(),
+	);
+
+	let expected_object = Object {
+		policies: vec![
+			AtRest {
+				id: COIN_PREDICATE,
+				params: ASSET_ID.encode(),
+			},
+			AtRest {
+				id: NONCE_PREDICATE,
+				params: nonce.to_vec(),
+			},
+		],
+		unlock: custom_unlock_expression.clone(),
+		data: WRAPPED_AMOUNT.encode(),
+	};
+
+	let expected_object_digest = expected_object.digest();
+
+	TestState::new_empty().execute_with(|| {
+		// events are not emitted on the genesis block
+		// so here we're setting the block number to 1
+		System::set_block_number(1);
+
+		install_test_predicates().expect("installing test predicates failed");
+
+		run_to_block(10);
+
+		assert_eq!(
+			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
+			None
+		);
+
+		// This is for paying the fee for wrapping the asset
+		let native_balance = mint_native_token(
+			&AccountKeyring::Alice.to_account_id(),
+			NATIVE_TOKEN_BALANCE,
+		)
+		.expect("minting native token failed");
+		assert_eq!(native_balance, NATIVE_TOKEN_BALANCE);
+
+		create_asset(ASSET_ID, AccountKeyring::Alice.to_account_id(), true)
+			.expect("asset creation failed");
+		mint_asset(
+			ASSET_ID,
+			AccountKeyring::Alice.to_account_id(),
+			AccountKeyring::Alice.to_account_id(),
+			TOTAL_SUPPLY,
+		)
+		.expect("asset minting failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let initial_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		let total_supply = pallet_assets::Pallet::<Runtime>::total_supply(1);
+
+		assert_eq!(initial_balance, TOTAL_SUPPLY);
+		assert_eq!(total_supply, TOTAL_SUPPLY);
+
+		pallet_objects::Pallet::<Runtime>::wrap(
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
+			ASSET_ID,
+			WRAPPED_AMOUNT,
+			Some(custom_unlock_expression.clone()),
+		)
+		.expect("asset wrap failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, WRAPPED_AMOUNT);
+
+		let remaining_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		assert_eq!(remaining_balance, TOTAL_SUPPLY - WRAPPED_AMOUNT);
+
+		let object =
+			pallet_objects::Objects::<Runtime>::get(expected_object_digest)
+				.expect("object not found");
+
+		assert_eq!(object.instance_count, 1);
+		assert_eq!(object.object, expected_object);
+
+		System::assert_has_event(
+			pallet_objects::Event::<Runtime>::ObjectCreated {
+				object: expected_object.clone(),
+			}
+			.into(),
+		);
+		System::assert_has_event(
+			pallet_assets::Event::<Runtime>::Transferred {
+				asset_id: 1,
+				from: AccountKeyring::Alice.to_account_id(),
+				to: VAULT,
+				amount: WRAPPED_AMOUNT,
+			}
+			.into(),
+		);
+	});
+}
+
+#[test]
+fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
+	const ASSET_ID: u32 = 1;
+	const TOTAL_SUPPLY: u64 = 100000000;
+	const WRAPPED_AMOUNT: u64 = 300000;
+	const NATIVE_TOKEN_BALANCE: u64 = 1000;
+
+	let custom_unlock_expression: Expression<AtRest> = vec![
+		Op::Or,
+		Op::Predicate(AtRest {
+			id: PredicateId(9909181),
+			params: b"random-preimage".digest().encode(),
+		}),
+		Op::Predicate(AtRest {
+			id: DEFAULT_SIGNATURE_PREDICATE,
+			params: AccountKeyring::Alice.to_account_id().encode(),
+		}),
+	]
+	.try_into()
+	.expect("unlock expression is invalid");
+
+	let nonce = blake2_64(
+		&[
+			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+			0u32.encode().as_slice(),
+		]
+		.concat(),
+	);
+
+	let expected_object = Object {
+		policies: vec![
+			AtRest {
+				id: COIN_PREDICATE,
+				params: ASSET_ID.encode(),
+			},
+			AtRest {
+				id: NONCE_PREDICATE,
+				params: nonce.to_vec(),
+			},
+		],
+		unlock: custom_unlock_expression.clone(),
+		data: WRAPPED_AMOUNT.encode(),
+	};
+
+	let expected_object_digest = expected_object.digest();
+
+	TestState::new_empty().execute_with(|| {
+		// events are not emitted on the genesis block
+		// so here we're setting the block number to 1
+		System::set_block_number(1);
+
+		assert_eq!(
+			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
+			None
+		);
+
+		// This is for paying the fee for wrapping the asset
+		let native_balance = mint_native_token(
+			&AccountKeyring::Alice.to_account_id(),
+			NATIVE_TOKEN_BALANCE,
+		)
+		.expect("minting native token failed");
+		assert_eq!(native_balance, NATIVE_TOKEN_BALANCE);
+
+		create_asset(ASSET_ID, AccountKeyring::Alice.to_account_id(), true)
+			.expect("asset creation failed");
+		mint_asset(
+			ASSET_ID,
+			AccountKeyring::Alice.to_account_id(),
+			AccountKeyring::Alice.to_account_id(),
+			TOTAL_SUPPLY,
+		)
+		.expect("asset minting failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let initial_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		let total_supply = pallet_assets::Pallet::<Runtime>::total_supply(1);
+
+		assert_eq!(initial_balance, TOTAL_SUPPLY);
+		assert_eq!(total_supply, TOTAL_SUPPLY);
+
+		assert_noop!(
+			pallet_objects::Pallet::<Runtime>::wrap(
+				RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
+				ASSET_ID,
+				WRAPPED_AMOUNT,
+				Some(custom_unlock_expression.clone()),
+			),
+			pallet_objects::Error::<Runtime>::PredicateNotFound
+		);
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let remaining_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		assert_eq!(remaining_balance, TOTAL_SUPPLY);
+	});
+}
+
+#[test]
+fn wrap_asset_into_object_default_unlock_insufficient_balance() {
+	const ASSET_ID: u32 = 1;
+	const TOTAL_SUPPLY: u64 = 1000;
+	const WRAPPED_AMOUNT: u64 = 300000;
+	const NATIVE_TOKEN_BALANCE: u64 = 1000;
+
+	TestState::new_empty().execute_with(|| {
+		// events are not emitted on the genesis block
+		// so here we're setting the block number to 1
+		System::set_block_number(1);
+
+		// This is for paying the fee for wrapping the asset
+		let native_balance = mint_native_token(
+			&AccountKeyring::Alice.to_account_id(),
+			NATIVE_TOKEN_BALANCE,
+		)
+		.expect("minting native token failed");
+		assert_eq!(native_balance, NATIVE_TOKEN_BALANCE);
+
+		create_asset(ASSET_ID, AccountKeyring::Alice.to_account_id(), true)
+			.expect("asset creation failed");
+		mint_asset(
+			ASSET_ID,
+			AccountKeyring::Alice.to_account_id(),
+			AccountKeyring::Alice.to_account_id(),
+			TOTAL_SUPPLY,
+		)
+		.expect("asset minting failed");
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let initial_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		let total_supply = pallet_assets::Pallet::<Runtime>::total_supply(1);
+
+		assert_eq!(initial_balance, TOTAL_SUPPLY);
+		assert_eq!(total_supply, TOTAL_SUPPLY);
+
+		assert_noop!(
+			pallet_objects::Pallet::<Runtime>::wrap(
+				RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
+				ASSET_ID,
+				WRAPPED_AMOUNT,
+				None,
+			),
+			pallet_assets::Error::<Runtime>::BalanceLow
+		);
+
+		let vault_balance = pallet_assets::Pallet::<Runtime>::balance(1, VAULT);
+		assert_eq!(vault_balance, 0);
+
+		let remaining_balance = pallet_assets::Pallet::<Runtime>::balance(
+			1,
+			AccountKeyring::Alice.to_account_id(),
+		);
+		assert_eq!(remaining_balance, TOTAL_SUPPLY);
+	});
+}

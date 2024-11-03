@@ -13,10 +13,10 @@ pub mod transition;
 pub use {
 	digest::{Digest, Hashable},
 	eval::{Context, InUse, Location, PredicateFunctor, Role},
-	expression::Expression,
+	expression::{Expression, Op},
 	object::Object,
 	predicate::{Predicate, PredicateId},
-	repr::Repr,
+	repr::{AtRest, Repr},
 	scale as codec,
 	transition::Transition,
 };

@@ -34,9 +34,19 @@ pub fn multiaddr(ctx: Context<'_>, _: &Transition, params: &[u8]) -> bool {
 	true
 }
 
+/// A multiaddress.
+#[opto::predicate(id = 503)]
+pub fn memo(ctx: Context<'_>, _: &Transition, params: &[u8]) -> bool {
+	let len_range = 1..=255;
+	ensure!(is_policy(&ctx));
+	ensure!(len_range.contains(&params.len()));
+	true
+}
+
 pub mod ids {
 	pub use super::{
 		ipfs_id as ipfs,
+		memo_id as memo,
 		multiaddr_id as multiaddr,
 		p2ptopic_id as p2ptopic,
 	};

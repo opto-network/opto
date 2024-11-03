@@ -52,6 +52,7 @@ pub fn native_impl_factory(
 		meta::ids::ipfs => meta::ipfs,
 		meta::ids::p2ptopic => meta::p2ptopic,
 		meta::ids::multiaddr => meta::multiaddr,
+		meta::ids::memo => meta::memo,
 
 		// economy
 		asset::ids::coin => asset::coin,

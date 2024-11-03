@@ -83,4 +83,22 @@ parameter_types! {
 }
 
 #[derive_impl(pallet_objects::config::TestnetDefaultConfig)]
-impl pallet_objects::Config for Runtime {}
+impl pallet_objects::Config for Runtime {
+	/// The predicate id of the `coin` policy.
+	/// This policy is part of the standard predicate library and is
+	/// known at genesis time.
+	type CoinPolicyPredicate = CoinPolicyPredicate;
+	/// The predicate id of the signature verification policy that is used when
+	/// wrapping assets into objects and not specifying a custom unlock
+	/// expression.
+	///
+	/// By default it is sr25519 signature verification.
+	///
+	/// When an object is unwrapped into an asset and no extra ephemeral objects
+	/// are provided, the `pallet_objects` module will check if the signer of the
+	/// transaction is the same as the public key in the object unlock expression
+	/// if the unlock expression is Sr25519(signer).
+	type DefaultSignatureVerifyPredicate = SignatureVerifyPredicate;
+	type NoncePolicyPredicate = NoncePolicyPredicate;
+	type VaultAccount = VaultAccount;
+}

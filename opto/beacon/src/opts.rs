@@ -14,3 +14,9 @@ pub struct BeaconOpts {
 	#[clap(long, default_value_t = false)]
 	no_default_bootstrap: bool,
 }
+
+impl BeaconOpts {
+	pub fn is_interactive(&self) -> bool {
+		false
+	}
+}
