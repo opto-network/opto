@@ -121,6 +121,16 @@ pub mod pallet {
 
 		/// An attempt to wrap zero amount of an asset.
 		ZeroWrapAmount,
+
+		/// The object that is being consumed is not found.
+		InputObjectNotFound,
+
+		/// The object has unlock conditions that cannot be used for object
+		/// unwrapping.
+		InvalidUnlockForUnwrap,
+
+		/// The object that is being unwrapped is not a valid coin.
+		InvalidAssetObject,
 	}
 
 	/// The pallet's dispatchable extrinisicts.
@@ -139,6 +149,11 @@ pub mod pallet {
 			unlock: Option<Expression<AtRest>>,
 		) -> DispatchResult {
 			dispatch::wrap::<T, I>(origin, asset_id, amount, unlock)
+		}
+
+		#[pallet::call_index(2)]
+		pub fn unwrap(origin: OriginFor<T>, object: Digest) -> DispatchResult {
+			dispatch::unwrap::<T, I>(origin, object)
 		}
 	}
 }

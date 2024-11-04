@@ -8,6 +8,7 @@ use {
 };
 
 mod install;
+mod unwrap;
 mod utils;
 mod wrap;
 

@@ -6,9 +6,38 @@ use {
 };
 
 mod install;
+mod unwrap;
 mod wrap;
 
-pub use {install::install, wrap::wrap};
+pub use {install::install, unwrap::unwrap, wrap::wrap};
+
+fn consume_input<T: Config<I>, I: 'static>(
+	digest: Digest,
+	emit_event: bool,
+) -> Result<Object<AtRest, Vec<u8>>, Error<T, I>> {
+	let stored_object = Objects::<T, I>::get(digest) //
+		.ok_or(Error::<T, I>::InputObjectNotFound)?;
+
+	// if the object is found, we need to decrement the
+	// remaining field and check if it is zero. If it is
+	// zero, we need to remove the object from storage.
+	let remaining = stored_object.instance_count.saturating_sub(1);
+
+	if remaining == 0 {
+		Objects::<T, I>::remove(digest);
+	} else {
+		Objects::<T, I>::insert(digest, StoredObject {
+			instance_count: remaining,
+			object: stored_object.object.clone(),
+		});
+	}
+
+	if emit_event {
+		Pallet::<T, I>::deposit_event(Event::ObjectDestroyed { digest });
+	}
+
+	Ok(stored_object.object)
+}
 
 fn produce_output<T: Config<I>, I: 'static>(
 	object: Object<AtRest, Vec<u8>>,
