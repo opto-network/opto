@@ -3,6 +3,7 @@ use frame::prelude::Weight;
 pub trait WeightInfo {
 	fn wrap() -> Weight;
 	fn unwrap() -> Weight;
+	fn apply() -> Weight;
 	fn install() -> Weight;
 }
 
@@ -17,6 +18,10 @@ impl WeightInfo for SubstrateWeightInfo {
 	}
 
 	fn install() -> Weight {
+		Weight::from_all(1)
+	}
+
+	fn apply() -> Weight {
 		Weight::from_all(1)
 	}
 }

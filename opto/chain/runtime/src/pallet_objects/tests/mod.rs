@@ -7,6 +7,7 @@ use {
 	},
 };
 
+mod apply;
 mod install;
 mod unwrap;
 mod utils;

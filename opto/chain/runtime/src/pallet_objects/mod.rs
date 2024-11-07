@@ -131,6 +131,14 @@ pub mod pallet {
 
 		/// The object that is being unwrapped is not a valid coin.
 		InvalidAssetObject,
+
+		/// One or more of the unlock expressions on input objects is not
+		/// satisfied.
+		UnsatifiedUnlockExpression,
+
+		/// One or more of the policy predicates attached to objects involved in
+		/// the transition are not satisfied.
+		UnsatifiedPolicy,
 	}
 
 	/// The pallet's dispatchable extrinisicts.
@@ -154,6 +162,14 @@ pub mod pallet {
 		#[pallet::call_index(2)]
 		pub fn unwrap(origin: OriginFor<T>, object: Digest) -> DispatchResult {
 			dispatch::unwrap::<T, I>(origin, object)
+		}
+
+		#[pallet::call_index(3)]
+		pub fn apply(
+			origin: OriginFor<T>,
+			transitions: Vec<Transition<repr::Compact>>,
+		) -> DispatchResult {
+			dispatch::apply::<T, I>(origin, transitions)
 		}
 	}
 }

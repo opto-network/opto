@@ -5,11 +5,12 @@ use {
 	sp_core::Get,
 };
 
+mod apply;
 mod install;
 mod unwrap;
 mod wrap;
 
-pub use {install::install, unwrap::unwrap, wrap::wrap};
+pub use {apply::apply, install::install, unwrap::unwrap, wrap::wrap};
 
 fn consume_input<T: Config<I>, I: 'static>(
 	digest: Digest,

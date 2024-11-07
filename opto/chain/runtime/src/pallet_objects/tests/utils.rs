@@ -9,6 +9,7 @@ use {
 	},
 	frame::{testing_prelude::*, traits::fungible::Mutate},
 	opto_core::{AtRest, Hashable, Object, PredicateId, Transition},
+	repr::{Compact, Expanded},
 	sp_keyring::AccountKeyring,
 	sp_runtime::MultiAddress,
 };
@@ -105,4 +106,81 @@ pub fn run_to_block(n: u32) {
 		System::on_initialize(System::block_number());
 		pallet_objects::Pallet::<Runtime>::on_initialize(System::block_number());
 	}
+}
+
+pub fn fixup_nonces_expanded(transition: &mut Transition<Expanded>) {
+	use blake2::{digest::consts::U8, Digest};
+
+	type Hasher = blake2::Blake2b<U8>;
+
+	fn hash_concat(elems: &[&[u8]]) -> u64 {
+		let mut hasher = Hasher::default();
+		for elem in elems {
+			hasher.update(elem);
+		}
+		u64::from_le_bytes(hasher.finalize().into())
+	}
+
+	let mut hasher = Hasher::default();
+	for input in transition.inputs.iter() {
+		hasher.update(input.digest());
+	}
+
+	let inputs_hash: [u8; 8] = hasher.finalize().into();
+	for (ix, object) in transition.outputs.iter_mut().enumerate() {
+		if let Some(nonce_policy) =
+			object.policies.iter_mut().find(|p| p.id == NONCE_PREDICATE)
+		{
+			let nonce =
+				hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+			nonce_policy.params = nonce.to_le_bytes().to_vec();
+		}
+	}
+}
+
+pub fn fixup_nonces_compact(transition: &mut Transition<Compact>) {
+	use blake2::{digest::consts::U8, Digest};
+
+	type Hasher = blake2::Blake2b<U8>;
+
+	fn hash_concat(elems: &[&[u8]]) -> u64 {
+		let mut hasher = Hasher::default();
+		for elem in elems {
+			hasher.update(elem);
+		}
+		u64::from_le_bytes(hasher.finalize().into())
+	}
+
+	let mut hasher = Hasher::default();
+	for input in transition.inputs.iter() {
+		hasher.update(input);
+	}
+
+	let inputs_hash: [u8; 8] = hasher.finalize().into();
+	for (ix, object) in transition.outputs.iter_mut().enumerate() {
+		if let Some(nonce_policy) =
+			object.policies.iter_mut().find(|p| p.id == NONCE_PREDICATE)
+		{
+			let nonce =
+				hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+			nonce_policy.params = nonce.to_le_bytes().to_vec();
+		}
+	}
+}
+
+pub fn sign(keyring: AccountKeyring, transition: &mut Transition<Compact>) {
+	let message = transition.digest_for_signing();
+	let signature = keyring.sign(message.as_slice());
+	transition.ephemerals.push(Object {
+		policies: vec![AtRest {
+			id: DEFAULT_SIGNATURE_PREDICATE,
+			params: keyring.to_account_id().encode(),
+		}],
+		unlock: AtRest {
+			id: PredicateId(100), // const
+			params: vec![1],
+		}
+		.into(),
+		data: signature.to_vec(),
+	});
 }
