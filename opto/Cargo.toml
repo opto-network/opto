@@ -22,7 +22,7 @@ path = "src/main.rs"
 required-features = ["std"]
 
 [features]
-default = ["std", "chain", "p2p", "beacon"]
+default = ["chain", "beacon"]
 std = [
   "tokio",
   "log",
@@ -32,9 +32,9 @@ std = [
   "opto-core/std",
   "thiserror",
 ]
-chain = ["std", "opto-chain"]
+chain = ["std", "opto-chain", "p2p"]
 p2p = ["std", "opto-p2p"]
-beacon = ["std", "opto-beacon"]
+beacon = ["std", "opto-beacon", "p2p"]
 
 test = ["opto-core/test"]
 

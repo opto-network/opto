@@ -10,7 +10,7 @@ pub struct ChainOpts {
 	pub cmd: RunCmd,
 
 	#[clap(subcommand)]
-	subcommand: Option<SubCommand>,
+	pub subcommand: Option<SubCommand>,
 }
 
 impl ChainOpts {
