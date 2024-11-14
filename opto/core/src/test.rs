@@ -1,9 +1,9 @@
 use {
 	super::{predicate::PredicateId, Expression, Object, Transition},
 	crate::{
-		repr::{AtRest, Expanded},
-		Context,
-		Repr,
+		eval::Context,
+		repr::{Expanded, Repr},
+		AtRest,
 	},
 	alloc::{collections::BTreeMap, vec::Vec},
 };

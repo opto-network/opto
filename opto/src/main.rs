@@ -1,4 +1,4 @@
-use {clap::Parser, core::future};
+use clap::Parser;
 
 mod opts;
 
@@ -9,14 +9,9 @@ async fn main() -> anyhow::Result<()> {
 
 	match opts.command {
 		#[cfg(feature = "chain")]
-		opts::Command::Chain(opts) => {
-			opto_chain::SubstrateChain::start(opts).await?;
-			future::pending::<()>().await;
-		}
+		opts::Command::Chain(opts) => opto_chain::start(opts).await,
 
 		#[cfg(feature = "beacon")]
 		opts::Command::Beacon(_opts) => todo!(),
 	}
-
-	Ok(())
 }

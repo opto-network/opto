@@ -1,7 +1,11 @@
 use {
 	crate::utils::*,
 	blake2::{digest::consts::U8, Digest},
-	opto::{Context, Hashable, Location, Transition},
+	opto::{
+		eval::{Context, Location},
+		Hashable,
+		Transition,
+	},
 };
 
 // u64 is 8 bytes

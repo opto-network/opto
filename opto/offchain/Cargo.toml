@@ -1,0 +1,14 @@
+[package]
+name = "opto-offchain"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+opto-core = { path = "../core" }
+opto-onchain = { path = "../onchain" }
+
+subxt = { version = "0.38", features = ["substrate-compat"] }
+scale = { workspace = true }
+pallet-assets = { version = "40.0.0" }
+sp-core = { version = "31.0.0" }
+subxt-signer = { version = "0.38.0" }

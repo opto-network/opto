@@ -1,7 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["opto", "sdk/offchain", "sdk/onchain", "stdpred"]
-
+members = [
+  "examples/token-swap/patron",
+  "examples/token-swap/solver",
+  "examples/zk-prover/patron",
+  "examples/zk-prover/solver",
+  "opto",
+  "stdpred",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -18,6 +24,7 @@ publish = false
 [workspace.dependencies]
 blake2 = { version = "0.10", default-features = false }
 tokio = { version = "1.41", features = ["full"] }
+futures = { version = "0.3" }
 scale = { version = "3.6", features = [
   "derive",
   "max-encoded-len",

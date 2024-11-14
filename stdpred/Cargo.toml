@@ -12,7 +12,9 @@ publish.workspace = true
 description = "Opto Standard Predicates Library"
 
 [dependencies]
-opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false }
+opto = { path = "../opto", default-features = false, features = [
+  "onchain-sdk",
+] }
 
 scale.workspace = true
 blake2.workspace = true
@@ -28,13 +30,12 @@ num-bigint.workspace = true
 cid.workspace = true
 
 [dev-dependencies]
-opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [
+opto = { path = "../opto", default-features = false, features = [
+  "onchain-sdk",
   "test",
 ] }
 hex-literal = "0.4"
 hex = "0.4"
 
 [build-dependencies]
-opto = { path = "../sdk/onchain", package = "opto-onchain", default-features = false, features = [
-  "build",
-] }
+opto = { path = "../opto", default-features = false, features = ["build"] }

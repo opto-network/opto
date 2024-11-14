@@ -1,6 +1,6 @@
 use {
-	super::{predicate::Predicate, Expression},
-	crate::repr::AtRest,
+	super::Expression,
+	crate::predicate::AtRest,
 	alloc::vec::Vec,
 	core::fmt::{Debug, Formatter},
 	scale::{self, Decode, Encode, EncodeLike},
@@ -8,7 +8,7 @@ use {
 };
 
 /// The basic and most fundamental unit of state and behavior in the system.
-pub struct Object<P: Predicate = AtRest, D = Vec<u8>> {
+pub struct Object<P = AtRest, D = Vec<u8>> {
 	/// A list of predicates that define the type and the behavior of the object.
 	/// All predicates must be satisfied for the object to be conlocationred
 	/// valid.
@@ -24,7 +24,7 @@ pub struct Object<P: Predicate = AtRest, D = Vec<u8>> {
 	pub data: D,
 }
 
-impl<P: Predicate + Clone, D: Clone> Clone for Object<P, D> {
+impl<P: Clone, D: Clone> Clone for Object<P, D> {
 	fn clone(&self) -> Self {
 		Object {
 			policies: self.policies.clone(),
@@ -34,7 +34,7 @@ impl<P: Predicate + Clone, D: Clone> Clone for Object<P, D> {
 	}
 }
 
-impl<P: Predicate + Debug, D: Debug> Debug for Object<P, D> {
+impl<P: Debug, D: Debug> Debug for Object<P, D> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Object")
 			.field("policies", &self.policies)
@@ -44,7 +44,7 @@ impl<P: Predicate + Debug, D: Debug> Debug for Object<P, D> {
 	}
 }
 
-impl<P: Predicate + PartialEq, D: PartialEq> PartialEq for Object<P, D> {
+impl<P: PartialEq, D: PartialEq> PartialEq for Object<P, D> {
 	fn eq(&self, other: &Self) -> bool {
 		self.policies == other.policies
 			&& self.unlock == other.unlock
@@ -53,7 +53,7 @@ impl<P: Predicate + PartialEq, D: PartialEq> PartialEq for Object<P, D> {
 }
 
 /// Serialization support for predicates in states that can be persisted.
-impl<P: Predicate + Encode, D: Encode> Encode for Object<P, D> {
+impl<P: Encode, D: Encode> Encode for Object<P, D> {
 	fn size_hint(&self) -> usize {
 		self.data.size_hint()
 			+ self.policies.size_hint()
@@ -68,12 +68,10 @@ impl<P: Predicate + Encode, D: Encode> Encode for Object<P, D> {
 	}
 }
 
-impl<P: Predicate + Encode, D: Encode> EncodeLike for Object<P, D> where
-	Object<P, D>: Encode
-{
-}
+impl<P: Encode, D: Encode> EncodeLike for Object<P, D> where Object<P, D>: Encode
+{}
 
-impl<P: Predicate + Decode, D: Decode> scale::Decode for Object<P, D> {
+impl<P: Decode, D: Decode> scale::Decode for Object<P, D> {
 	fn decode<I: scale::Input>(value: &mut I) -> Result<Self, scale::Error> {
 		Ok(Object {
 			policies: Vec::decode(value)?,
@@ -83,9 +81,7 @@ impl<P: Predicate + Decode, D: Decode> scale::Decode for Object<P, D> {
 	}
 }
 
-impl<P: Predicate + TypeInfo + 'static, D: TypeInfo + 'static> TypeInfo
-	for Object<P, D>
-{
+impl<P: TypeInfo + 'static, D: TypeInfo + 'static> TypeInfo for Object<P, D> {
 	type Identity = Self;
 
 	fn type_info() -> scale_info::Type {

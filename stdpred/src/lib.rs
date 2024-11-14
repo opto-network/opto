@@ -29,8 +29,8 @@ pub struct PredicateNotFound;
 /// don't require a WASM virtual machine and use less memory. They are however
 /// not portable.
 pub fn native_impl_factory(
-	pred: &opto::repr::AtRest,
-) -> Result<opto::PredicateFunctor, PredicateNotFound> {
+	pred: &opto::predicate::AtRest,
+) -> Result<opto::eval::PredicateFunctor, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
 		// util
 		util::ids::constant => util::constant,

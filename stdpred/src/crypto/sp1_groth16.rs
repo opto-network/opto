@@ -13,7 +13,13 @@ use {
 	cid::Cid,
 	core::array::TryFromSliceError,
 	num_bigint::BigUint,
-	opto::{repr::AtRest, Context, Hashable, PredicateId, Role, Transition},
+	opto::{
+		eval::{Context, Role},
+		predicate::AtRest,
+		Hashable,
+		PredicateId,
+		Transition,
+	},
 	scale::{Decode, Encode},
 	sha2::{Digest, Sha256},
 };
@@ -156,7 +162,7 @@ fn find_sp1_circuit_vk<'a>(
 
 /// SP1 has 2 public inputs to the verifier:
 /// 1. The hash of the app riscv elf executable that is being verified (appkey),
-/// 32 bytes, specific to the SP1 program.
+///    32 bytes, specific to the SP1 program.
 /// 2. The hash of the public inputs to the SP1 program elf.
 fn groth16_public_values(
 	sp1_vkey_hash: &[u8; 32],

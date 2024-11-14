@@ -23,9 +23,7 @@ scale = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
-futures = { version = "0.3", features = [
-  "thread-pool",
-], default-features = false }
+futures = { workspace = true, features = ["thread-pool"] }
 serde_json = { workspace = true }
 log = { workspace = true }
 jsonrpsee = { version = "0.23.2", features = ["server"] }

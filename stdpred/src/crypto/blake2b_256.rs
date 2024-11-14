@@ -1,6 +1,10 @@
 use {
 	crate::{ensure, utils::is_ephemeral},
-	opto::{Context, Digest, Role, Transition},
+	opto::{
+		eval::{Context, Role},
+		Digest,
+		Transition,
+	},
 };
 
 /// This predicate is used to unlock objects with a hash preimage.
@@ -47,11 +51,11 @@ mod test {
 		super::*,
 		crate::native_impl_factory,
 		opto::{
+			eval::Location,
 			repr::AtRest,
 			test::ObjectBuilder,
 			transition::Error,
 			Digest,
-			Location,
 			PredicateId,
 		},
 	};

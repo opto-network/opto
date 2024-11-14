@@ -85,6 +85,7 @@ mod runtime {
 		RuntimeLockId,
 		RuntimeTask
 	)]
+	#[derive(EncodeAsType, DecodeAsType)]
 	pub struct Runtime;
 
 	// SYSTEM PALLETS
@@ -262,6 +263,7 @@ pub mod interface {
 
 	pub type Block = super::Block;
 	pub use frame::runtime::types_common::OpaqueBlock;
+	pub type AssetId = <Runtime as pallet_assets::Config>::AssetId;
 	pub type AccountId = <Runtime as frame_system::Config>::AccountId;
 	pub type Nonce = <Runtime as frame_system::Config>::Nonce;
 	pub type Hash = <Runtime as frame_system::Config>::Hash;

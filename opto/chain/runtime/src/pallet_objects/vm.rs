@@ -8,11 +8,8 @@ use {
 	frame::{log::error, prelude::*},
 	frame_support::PalletError,
 	opto_core::{
-		Context,
-		Location,
-		PredicateFunctor,
+		eval::{Context, Location, PredicateFunctor, Role},
 		PredicateId,
-		Role,
 		Transition,
 	},
 	scale::{Decode, Encode},

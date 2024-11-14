@@ -3,7 +3,7 @@ use {
 	cid::{multihash::Multihash, Cid},
 	integer_encoding::VarInt,
 	libipld::multihash::Code,
-	opto::Digest,
+	opto_core::Digest,
 	serde::{Deserialize, Serialize},
 	std::{collections::BTreeMap, io::Write, path::Path},
 };

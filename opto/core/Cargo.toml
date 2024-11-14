@@ -24,6 +24,12 @@ scale = { workspace = true }
 blake2 = { workspace = true }
 scale-info = { workspace = true }
 hex = { workspace = true }
+scale-encode = { version = "0.8", features = [
+  "derive",
+], default-features = false }
+scale-decode = { version = "0.14", features = [
+  "derive",
+], default-features = false }
 derive_more = { workspace = true, features = [
   "display",
   "from",

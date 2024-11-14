@@ -7,6 +7,8 @@ use {
 	},
 	derive_more::derive::From,
 	scale::{Decode, Encode, MaxEncodedLen},
+	scale_decode::DecodeAsType,
+	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,
 	serde::{Deserialize, Serialize},
 };
@@ -30,6 +32,8 @@ pub type Hasher<Size = DefaultOutputSize> = blake2::Blake2b<Size>;
 	Hash,
 	Serialize,
 	Deserialize,
+	DecodeAsType,
+	EncodeAsType,
 )]
 pub struct Digest([u8; 32]);
 

@@ -7,6 +7,8 @@ pub use opts::ChainOpts;
 use {
 	futures::{FutureExt, Stream},
 	log::error,
+	opts::SubCommand,
+	sc_cli::CliConfiguration,
 	tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver},
 };
 
@@ -55,4 +57,22 @@ impl Stream for SubstrateChain {
 	) -> std::task::Poll<Option<Self::Item>> {
 		self.events_rx.poll_recv(cx)
 	}
+}
+
+pub async fn start(opts: ChainOpts) -> anyhow::Result<()> {
+	if let Some(ref subcmd) = opts.subcommand {
+		match subcmd {
+			SubCommand::BuildSpec(cmd) => {
+				let config = opts
+					.cmd
+					.create_configuration(&opts, tokio::runtime::Handle::current())?;
+				cmd.run(config.chain_spec, config.network)?;
+				return Ok(());
+			}
+		}
+	};
+
+	SubstrateChain::start(opts).await?;
+	futures::future::pending::<()>().await;
+	Ok(())
 }

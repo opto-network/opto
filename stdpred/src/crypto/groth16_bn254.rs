@@ -4,7 +4,13 @@ use {
 	ark_bn254::{Bn254, Fr},
 	ark_groth16::{Groth16, Proof},
 	ark_serialize::CanonicalDeserialize,
-	opto::{repr::AtRest, Context, Digest, Hashable, Role, Transition},
+	opto::{
+		eval::{Context, Role},
+		predicate::AtRest,
+		Digest,
+		Hashable,
+		Transition,
+	},
 	scale::{Decode, Encode},
 };
 
@@ -84,7 +90,7 @@ pub fn groth16_bn254(
 }
 
 impl VerifyingKey {
-	#[warn(clippy::result_unit_err)]
+	#[allow(clippy::result_unit_err)]
 	pub fn into_key(
 		self,
 		transition: &Transition,
@@ -112,7 +118,7 @@ impl VerifyingKey {
 }
 
 impl Challenge {
-	#[warn(clippy::result_unit_err)]
+	#[allow(clippy::result_unit_err)]
 	pub fn unpack(
 		self,
 		transition: &Transition,
@@ -132,7 +138,7 @@ pub mod test {
 		super::*,
 		crate::native_impl_factory,
 		hex_literal::hex,
-		opto::{test::*, transition::Error, Location, Object, PredicateId},
+		opto::{eval::Location, test::*, transition::Error, Object, PredicateId},
 		scale::Encode,
 	};
 

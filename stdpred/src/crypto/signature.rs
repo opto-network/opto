@@ -1,6 +1,9 @@
 use {
 	crate::{ensure, utils::is_ephemeral},
-	opto::{Context, Role, Transition},
+	opto::{
+		eval::{Context, Role},
+		Transition,
+	},
 };
 
 pub trait Verifier {

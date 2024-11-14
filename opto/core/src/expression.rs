@@ -1,7 +1,7 @@
 #[cfg(feature = "graph")]
 use petgraph::prelude::*;
 use {
-	crate::{repr::AtRest, Predicate},
+	crate::predicate::AtRest,
 	alloc::{string::String, vec::Vec},
 	core::{
 		fmt::{Debug, Display},
@@ -183,7 +183,7 @@ impl<P: TypeInfo + 'static> TypeInfo for Op<P> {
 /// input of a state transition
 ///
 /// The expression tree is stored in the prefix (polish) notation.
-pub struct Expression<P = AtRest>(Vec<Op<P>>);
+pub struct Expression<P = AtRest>(pub(crate) Vec<Op<P>>);
 
 impl<P: PartialEq> PartialEq for Expression<P> {
 	fn eq(&self, other: &Self) -> bool {
@@ -228,7 +228,7 @@ impl<P: Decode> Decode for Expression<P> {
 }
 
 /// Converts a list of operators in prefix notation to an expression tree.
-impl<P: Predicate> TryFrom<Vec<Op<P>>> for Expression<P> {
+impl<P> TryFrom<Vec<Op<P>>> for Expression<P> {
 	type Error = Error;
 
 	fn try_from(ops: Vec<Op<P>>) -> Result<Self, Self::Error> {
@@ -393,7 +393,7 @@ impl<P> Expression<P> {
 ///
 /// This overload of the bitwise AND operator creates a new expression tree
 /// with the AND operator as the root and the two operands as children.
-impl<P: Predicate> core::ops::BitAnd for Expression<P> {
+impl<P> core::ops::BitAnd for Expression<P> {
 	type Output = Self;
 
 	fn bitand(self, rhs: Self) -> Self {
@@ -405,7 +405,7 @@ impl<P: Predicate> core::ops::BitAnd for Expression<P> {
 	}
 }
 
-impl<P: Predicate> core::ops::BitAnd<P> for Expression<P> {
+impl<P> core::ops::BitAnd<P> for Expression<P> {
 	type Output = Self;
 
 	fn bitand(self, rhs: P) -> Self {
@@ -416,7 +416,7 @@ impl<P: Predicate> core::ops::BitAnd<P> for Expression<P> {
 
 /// This overload of the bitwise OR operator creates a new expression tree
 /// with the OR operator as the root and the two operands as children.
-impl<P: Predicate> core::ops::BitOr for Expression<P> {
+impl<P> core::ops::BitOr for Expression<P> {
 	type Output = Self;
 
 	fn bitor(self, rhs: Self) -> Self {
@@ -428,7 +428,7 @@ impl<P: Predicate> core::ops::BitOr for Expression<P> {
 	}
 }
 
-impl<P: Predicate> core::ops::BitOr<P> for Expression<P> {
+impl<P> core::ops::BitOr<P> for Expression<P> {
 	type Output = Self;
 
 	fn bitor(self, rhs: P) -> Self {
@@ -440,7 +440,7 @@ impl<P: Predicate> core::ops::BitOr<P> for Expression<P> {
 /// This overload of the unary NOT operator creates a new expression tree
 /// with the NOT operator as the root and the operand as the left child.
 /// Not operators are unary, so they only have one child (on the left).
-impl<P: Predicate> Not for Expression<P> {
+impl<P> Not for Expression<P> {
 	type Output = Self;
 
 	fn not(self) -> Self {
@@ -453,7 +453,7 @@ impl<P: Predicate> Not for Expression<P> {
 
 /// This wraps a predicate in an identity operator and creates a new expression
 /// tree.
-impl<P: Predicate> From<P> for Expression<P> {
+impl<P> From<P> for Expression<P> {
 	fn from(p: P) -> Self {
 		Self(alloc::vec![Op::Predicate(p)])
 	}
@@ -850,7 +850,6 @@ impl<'a, P> ExpressionTreeNav<'a, P> for ExpressionTreeCursor<'a, P> {
 mod tests {
 	use {
 		super::{Expression, Op},
-		crate::Predicate,
 		alloc::{
 			format,
 			string::{String, ToString},

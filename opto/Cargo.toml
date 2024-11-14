@@ -30,12 +30,15 @@ std = [
   "anyhow",
   "cid/std",
   "opto-core/std",
+  "opto-core/graph",
   "thiserror",
 ]
-chain = ["std", "opto-chain", "p2p"]
+chain = ["std", "opto-chain", "p2p", "clap"]
 p2p = ["std", "opto-p2p"]
-beacon = ["std", "opto-beacon", "p2p"]
-
+beacon = ["std", "opto-beacon", "p2p", "clap"]
+offchain-sdk = ["opto-offchain"]
+onchain-sdk = ["opto-onchain"]
+build = ["opto-onchain", "opto-onchain/build"]
 test = ["opto-core/test"]
 
 [dependencies]
@@ -43,11 +46,14 @@ opto-core = { path = "./core", default-features = false }
 opto-chain = { path = "./chain", optional = true }
 opto-p2p = { path = "./p2p", optional = true }
 opto-beacon = { path = "./beacon", optional = true }
+opto-offchain = { path = "./offchain", optional = true }
+opto-onchain = { path = "./onchain", optional = true }
 
+scale = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
-log = { version = "0.4", optional = true }
+log = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive"], optional = true }
 env_logger = { version = "0.11.5", optional = true }
 libp2p = { version = "0.54.1", optional = true, features = ["full"] }
 bytes = { version = "1.8", features = ["serde"], optional = true }

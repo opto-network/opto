@@ -52,7 +52,7 @@ fn devnet_genesis() -> Value {
 		frame::traits::Get,
 		runtime::interface::{Balance, MinimumBalance},
 	};
-	let endowment = <MinimumBalance as Get<Balance>>::get().max(1) * 100000;
+	let endowment = <MinimumBalance as Get<Balance>>::get().max(1) * 100000000000;
 	let balances = AccountKeyring::iter()
 		.map(|a| (a.to_account_id(), endowment))
 		.collect::<Vec<_>>();

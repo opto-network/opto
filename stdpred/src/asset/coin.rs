@@ -19,8 +19,8 @@
 use {
 	crate::{ensure, utils::*},
 	opto::{
+		eval::Context,
 		repr::{AsObject, Expanded},
-		Context,
 		Transition,
 	},
 	scale::Decode,

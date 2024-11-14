@@ -6,7 +6,7 @@ use {
 		PUBLIC_KEY_LENGTH,
 		SIGNATURE_LENGTH,
 	},
-	opto::{Context, Transition},
+	opto::{eval::Context, Transition},
 };
 
 struct Ed25519Verifier;

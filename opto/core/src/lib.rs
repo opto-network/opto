@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+mod codecs;
 pub mod digest;
 pub mod eval;
 pub mod expression;
@@ -12,11 +13,9 @@ pub mod transition;
 
 pub use {
 	digest::{Digest, Hashable},
-	eval::{Context, InUse, Location, PredicateFunctor, Role},
 	expression::{Expression, Op},
 	object::Object,
-	predicate::{Predicate, PredicateId},
-	repr::{AtRest, Repr},
+	predicate::{AtRest, PredicateId},
 	scale as codec,
 	transition::Transition,
 };

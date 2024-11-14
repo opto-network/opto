@@ -13,8 +13,7 @@ description = "Opto Onchain SDK"
 
 [dependencies]
 macros = { path = "./macros", package = "opto-onchain-macros" }
-opto = { path = "../../opto", default-features = false }
-
+opto-core = { path = "../core", default-features = false }
 
 [features]
 default = []
@@ -33,7 +32,6 @@ build = [
   "syn",
   "serde_ipld_dagcbor",
 ]
-test = ["opto/test"]
 
 optimize = ["binaryen"]
 

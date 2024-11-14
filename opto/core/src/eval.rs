@@ -1,6 +1,9 @@
 use {
 	super::{Object, Transition},
-	crate::{repr::Expanded, Predicate, PredicateId, Repr},
+	crate::{
+		repr::{Expanded, Repr},
+		PredicateId,
+	},
 	core::fmt::Debug,
 };
 
@@ -21,11 +24,6 @@ where
 {
 	eval: F,
 	_p: core::marker::PhantomData<&'a F>,
-}
-
-impl<'a, F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool>
-	Predicate for InUse<'a, F>
-{
 }
 
 impl<'a, F> InUse<'a, F>

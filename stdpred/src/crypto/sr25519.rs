@@ -1,6 +1,6 @@
 use {
 	super::signature::{signature_verification, Verifier},
-	opto::{Context, Transition},
+	opto::{eval::Context, Transition},
 	schnorrkel::{PublicKey, Signature, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH},
 };
 

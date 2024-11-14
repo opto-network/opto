@@ -4,7 +4,7 @@
 
 use {
 	crate::utils::*,
-	opto::{Context, Transition},
+	opto::{eval::Context, Transition},
 };
 
 /// A blob stored on IPFS.
