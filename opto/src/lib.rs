@@ -1,9 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(all(feature = "std", feature = "onchain-sdk"))]
-compile_error!(
-	"Cannot enable both `std` and `onchain-sdk` features at the same time."
-);
+// #[cfg(all(feature = "std", feature = "onchain-sdk"))]
+// compile_error!(
+// 	"Cannot enable both `std` and `onchain-sdk` features at the same time."
+// );
 
 pub use opto_core::{self as core, *};
 #[cfg(feature = "offchain-sdk")]

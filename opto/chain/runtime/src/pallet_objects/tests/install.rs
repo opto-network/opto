@@ -11,14 +11,14 @@ use {
 
 #[test]
 fn empty_state_has_no_predicates() {
-	TestState::new_empty().execute_with(|| {
+	no_genesis().execute_with(|| {
 		assert_eq!(pallet_objects::Predicates::<Runtime>::iter().count(), 0);
 	});
 }
 
 #[test]
 fn install_predicate_invalid_bytecode() {
-	TestState::new_empty().execute_with(|| {
+	no_genesis().execute_with(|| {
 		let alice = AccountKeyring::Alice;
 		let origin = RuntimeOrigin::signed(alice.to_account_id());
 		let bytecode = vec![0x00, 0x01, 0x02, 0x03];
@@ -35,11 +35,7 @@ fn install_predicate_invalid_bytecode() {
 #[test]
 fn install_predicate_valid_bytecode() {
 	let bytecode = include_bytes!("./assets/101.wasm").to_vec();
-	TestState::new_empty().execute_with(|| {
-		// events are not emitted on the genesis block
-		// so here we're setting the block number to 1
-		System::set_block_number(1);
-
+	no_genesis().execute_with(|| {
 		let alice = AccountKeyring::Alice;
 		let origin = RuntimeOrigin::signed(alice.to_account_id());
 
@@ -59,6 +55,25 @@ fn install_predicate_valid_bytecode() {
 				id: PredicateId(101),
 			}
 			.into(),
+		);
+	});
+}
+
+#[test]
+fn cannot_override_installed_predicate() {
+	let bytecode = include_bytes!("./assets/101.wasm").to_vec();
+	after_genesis().execute_with(|| {
+		let alice = AccountKeyring::Alice;
+		let origin = RuntimeOrigin::signed(alice.to_account_id());
+		assert!(
+			pallet_objects::Predicates::<Runtime>::get(PredicateId(101)).is_some()
+		);
+		assert_noop!(
+			pallet_objects::Pallet::<Runtime>::install(
+				origin.clone(),
+				bytecode.clone()
+			),
+			Error::<Runtime>::PredicateAlreadyExists
 		);
 	});
 }

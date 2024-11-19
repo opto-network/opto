@@ -21,19 +21,26 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 	let id_u32 = id.parse::<u32>().expect("Failed to parse id");
 	let id_lit = Literal::u32_suffixed(id_u32);
 
+	let crate_name = attribs
+		.get("core_crate")
+		.map(|s| s.as_str())
+		.unwrap_or("opto");
+
+	let crate_name = syn::Ident::new(crate_name, Span::call_site());
+
 	let item_fn_name = &item.sig.ident;
 	let pred_id = format!("pred_{}", id);
 	let const_name =
 		syn::Ident::new(&format!("{item_fn_name}_id"), Span::call_site());
 
 	let cfg_target = syn::Ident::new(pred_id.as_str(), Span::call_site());
-	let context_expand = gen::predicate_context();
+	let context_expand = gen::predicate_context(&crate_name);
 
 	let output = quote! {
 		#item
 
 		#[allow(non_upper_case_globals)]
-		pub const #const_name: ::opto::PredicateId = ::opto::PredicateId(#id_u32);
+		pub const #const_name: ::#crate_name::PredicateId = ::#crate_name::PredicateId(#id_u32);
 
 		#[cfg(#cfg_target)]
 		mod __abi_impl {

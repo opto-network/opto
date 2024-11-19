@@ -1,13 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-  "examples/token-swap/patron",
-  "examples/token-swap/solver",
-  "examples/zk-prover/patron",
-  "examples/zk-prover/solver",
-  "opto",
-  "stdpred",
-]
+members = ["opto", "opto/stdpred", "examples"]
 
 [workspace.package]
 version = "0.1.0"

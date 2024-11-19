@@ -1,0 +1,24 @@
+[package]
+name = "opto-examples"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+publish.workspace = true
+description = "Opto SDK Examples"
+
+[[bin]]
+name = "example-transfer"
+path = "transfer.rs"
+
+[dependencies]
+opto = { path = "../opto", features = [
+  "offchain-sdk",
+], default-features = false }
+
+tokio.workspace = true
+anyhow.workspace = true

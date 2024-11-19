@@ -1,16 +1,15 @@
 use {proc_macro2::TokenStream, quote::quote};
 
-pub fn predicate_context() -> TokenStream {
+pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 	quote! {
-		use ::opto::{
-			Object, Transition,
-			repr::AtRest,
+		use ::#core_crate::{
+			Object, Transition, AtRest,
 			eval::{Location, Context, Role},
 			codec::Decode,
 		};
 
 		let mut transision = unsafe {
-			core::slice::from_raw_parts(transition_ptr, transition_len as usize)
+			::core::slice::from_raw_parts(transition_ptr, transition_len as usize)
 		};
 
 		let transition: Transition = Decode::decode(&mut transision)
@@ -39,7 +38,7 @@ pub fn predicate_context() -> TokenStream {
 		};
 
 		let params = unsafe {
-			core::slice::from_raw_parts(params_ptr, params_len as usize)
+			::core::slice::from_raw_parts(params_ptr, params_len as usize)
 		};
 
 		let ctx = Context {

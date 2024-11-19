@@ -858,8 +858,6 @@ mod tests {
 		core::convert::TryInto,
 	};
 
-	impl Predicate for i32 {}
-
 	#[cfg(feature = "graph")]
 	use super::{ExpressionTree, ExpressionTreeNav};
 

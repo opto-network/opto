@@ -10,7 +10,6 @@ use {
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,
-	serde::{Deserialize, Serialize},
 };
 
 pub type DefaultOutputSize = blake2::digest::consts::U32;
@@ -30,11 +29,10 @@ pub type Hasher<Size = DefaultOutputSize> = blake2::Blake2b<Size>;
 	Ord,
 	From,
 	Hash,
-	Serialize,
-	Deserialize,
 	DecodeAsType,
 	EncodeAsType,
 )]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Digest([u8; 32]);
 
 pub trait Hashable: Encode {

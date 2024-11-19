@@ -26,7 +26,13 @@ pub struct StoredObject {
 pub mod pallet {
 	use {
 		super::{config::*, *},
-		frame::prelude::{frame_system, *},
+		frame::prelude::{
+			frame_system,
+			BuildGenesisConfig,
+			DispatchResult,
+			OriginFor,
+			*,
+		},
 	};
 
 	#[cfg(not(feature = "std"))]
@@ -35,9 +41,32 @@ pub mod pallet {
 	#[cfg(not(feature = "std"))]
 	use alloc::{vec, vec::Vec};
 
-	use frame::prelude::{DispatchResult, OriginFor};
-
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+		/// The contents of the stdpred wasm CAR file.
+		///
+		/// By default this file is generated when compiling opto-stdpred in
+		/// release mode in the target directory of the crate.
+		///
+		/// It contains all the standard predicates that are used by the runtime
+		/// in wasm format.
+		pub stdpred: Vec<u8>,
+
+		/// The initial objects that are created in the genesis block.
+		pub objects: Vec<Object>,
+
+		pub phantom: core::marker::PhantomData<(T, I)>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config<I>, I> BuildGenesisConfig for GenesisConfig<T, I> {
+		fn build(&self) {
+			config::genesis::build::<T, I>(self);
+		}
+	}
 
 	#[pallet::config(with_default)]
 	pub trait Config<I: 'static = ()>:

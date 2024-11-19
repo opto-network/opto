@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 opto-core = { path = "../core" }
-opto-onchain = { path = "../onchain" }
+opto-stdpred = { path = "../stdpred" }
 
 subxt = { version = "0.38", features = ["substrate-compat"] }
 scale = { workspace = true }

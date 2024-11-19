@@ -20,6 +20,7 @@ pub struct PredicateWasmBinary {
 	pub wasm: Vec<u8>,
 }
 
+#[derive(Debug)]
 pub struct BuildTarget<'p> {
 	predicate_id: u32,
 	target_dir: PathBuf,

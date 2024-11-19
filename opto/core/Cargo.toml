@@ -14,10 +14,12 @@ publish.workspace = true
 doctest = false
 
 [features]
-default = ["std", "graph"]
+default = ["std", "graph", "archive", "serde"]
 std = []
 graph = ["petgraph", "std"]
 test = []
+serde = ["dep:serde"]
+archive = ["serde"]
 
 [dependencies]
 scale = { workspace = true }
@@ -40,10 +42,12 @@ derive_more = { workspace = true, features = [
 serde = { workspace = true, default-features = false, features = [
   "derive",
   "alloc",
-] }
+], optional = true }
+
 petgraph = { version = "0.6", features = [
   "stable_graph",
 ], default-features = false, optional = true }
 
 [dev-dependencies]
 opto-core = { path = ".", features = ["test", "graph"] }
+serde_json = { workspace = true, default-features = false }

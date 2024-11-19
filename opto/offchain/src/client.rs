@@ -106,8 +106,6 @@ type SystemEvent = crate::runtime_types::frame_system::pallet::Event;
 type ObjectsEvent =
 	crate::runtime_types::opto_chain_runtime::pallet_objects::pallet::Event;
 
-type AssetsEvent = crate::runtime_types::pallet_assets::pallet::Event;
-
 impl ReadOnlyClient for Client {
 	type Error = subxt::Error;
 
@@ -220,10 +218,8 @@ impl MutatingClient for Client {
 		let tx_in_block = tx.wait_for_finalized().await?;
 		for event in tx_in_block.fetch_events().await?.iter() {
 			match event?.as_root_event::<crate::Event>()? {
-				Event::Objects(ObjectsEvent::ObjectDestroyed { digest }) => {
-					if digest == *object {
-						return Ok(());
-					}
+				Event::System(SystemEvent::ExtrinsicSuccess { .. }) => {
+					return Ok(());
 				}
 				Event::System(SystemEvent::ExtrinsicFailed {
 					dispatch_error, ..
@@ -267,6 +263,9 @@ impl MutatingClient for Client {
 				Event::Objects(ObjectsEvent::ObjectDestroyed { digest }) => {
 					destroyed.push(digest);
 				}
+				Event::System(SystemEvent::ExtrinsicSuccess { .. }) => {
+					break;
+				}
 				Event::System(SystemEvent::ExtrinsicFailed {
 					dispatch_error, ..
 				}) => {
@@ -289,14 +288,11 @@ impl MutatingClient for Client {
 		amount: Balance,
 		recipient: &AccountId32,
 	) -> Result<(), <Self as MutatingClient>::Error> {
+		let to: MultiAddress<_, _> = recipient.clone().into();
 		let tx = self
 			.tx()
 			.sign_and_submit_then_watch_default(
-				&tx().assets().transfer(
-					asset_id,
-					MultiAddress::Address32(recipient.0),
-					amount,
-				),
+				&tx().assets().transfer(asset_id, to, amount),
 				signer,
 			)
 			.await?;
@@ -304,19 +300,8 @@ impl MutatingClient for Client {
 		let tx_in_block = tx.wait_for_finalized().await?;
 		for event in tx_in_block.fetch_events().await?.iter() {
 			match event?.as_root_event::<crate::Event>()? {
-				Event::Assets(AssetsEvent::Transferred {
-					asset_id: transferred_asset_id,
-					amount: transferred_amount,
-					from,
-					to,
-				}) => {
-					if transferred_asset_id == asset_id
-						&& transferred_amount == amount
-						&& from == signer.account_id().into()
-						&& to == *recipient
-					{
-						return Ok(());
-					}
+				Event::System(SystemEvent::ExtrinsicSuccess { .. }) => {
+					return Ok(());
 				}
 				Event::System(SystemEvent::ExtrinsicFailed {
 					dispatch_error, ..
@@ -341,7 +326,7 @@ impl MutatingClient for Client {
 		amount: Balance,
 		recipient: &AccountId32,
 	) -> Result<(), <Self as MutatingClient>::Error> {
-		let to = MultiAddress::Address32(recipient.0);
+		let to: MultiAddress<_, _> = recipient.clone().into();
 		let tx = self
 			.tx()
 			.sign_and_submit_then_watch_default(

@@ -32,6 +32,7 @@ use {
 	DecodeAsType,
 	EncodeAsType,
 )]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PredicateId(pub u32);
 
 /// A description of a predicate.

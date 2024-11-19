@@ -11,6 +11,9 @@ pub mod predicate;
 pub mod repr;
 pub mod transition;
 
+#[cfg(feature = "serde")]
+mod serde;
+
 pub use {
 	digest::{Digest, Hashable},
 	expression::{Expression, Op},

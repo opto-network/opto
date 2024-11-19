@@ -11,6 +11,7 @@ use {
 	walkdir::WalkDir,
 };
 
+#[derive(Debug)]
 pub(crate) struct Project {
 	package_name: String,
 	package_dir: PathBuf,
@@ -106,8 +107,9 @@ impl<'ast> Visit<'ast> for AttribVisitor {
 			let meta = attr.meta.clone();
 			if let Meta::List(list) = meta {
 				let list = list.tokens.into_iter().collect::<Vec<TokenTree>>();
-				if let [TokenTree::Ident(ident), TokenTree::Punct(punct), TokenTree::Literal(lit)] =
-					list.as_slice()
+				if let Some(
+					&[TokenTree::Ident(ref ident), TokenTree::Punct(ref punct), TokenTree::Literal(ref lit)],
+				) = list.windows(3).take(1).next()
 				{
 					if ident == "id" && punct.as_char() == '=' {
 						let id = lit.to_string().parse::<u32>().unwrap();

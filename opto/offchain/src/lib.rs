@@ -2,7 +2,13 @@ mod client;
 mod model;
 mod transition;
 
-pub use {client::*, model::api::*, subxt_signer::*, transition::*};
+pub use {
+	client::*,
+	model::api::*,
+	opto_stdpred as stdpred,
+	subxt_signer::*,
+	transition::*,
+};
 use {
 	core::future::Future,
 	opto_core::{

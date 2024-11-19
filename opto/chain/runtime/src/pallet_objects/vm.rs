@@ -311,7 +311,7 @@ fn index_of<T>(slice: &[T], item: &T) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-	use {super::*, opto_core::*};
+	use {super::*, eval::InUse, opto_core::*};
 
 	#[test]
 	fn invalid_bytecode_returns_error() {
@@ -389,7 +389,7 @@ mod tests {
 
 		assert_eq!(
 			evaluation,
-			Err(opto_core::transition::Error::PolicyNotSatisfied(
+			Err(opto_core::eval::Error::PolicyNotSatisfied(
 				&transition.inputs[0],
 				Location::Input,
 				0
@@ -450,7 +450,7 @@ mod tests {
 
 		assert_eq!(
 			evaluation,
-			Err(opto_core::transition::Error::UnlockNotSatisfied(
+			Err(opto_core::eval::Error::UnlockNotSatisfied(
 				&transition.inputs[0],
 				Location::Input,
 			))

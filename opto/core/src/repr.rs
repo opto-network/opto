@@ -1,5 +1,12 @@
 use {
-	crate::{expression::Expression, object::Object, AtRest, Digest},
+	crate::{
+		eval::{Context, InUse},
+		expression::Expression,
+		object::Object,
+		AtRest,
+		Digest,
+		Transition,
+	},
 	alloc::vec::Vec,
 	scale::{Decode, Encode},
 	scale_decode::DecodeAsType,
@@ -25,7 +32,10 @@ use {
 ///   amount of data copying so we use references to the original data in the
 ///   "at rest" representation. This representation is not serializable, not
 ///   clonable, copiable or comparable.
-pub trait Repr {
+pub trait Repr
+where
+	Self: Sized,
+{
 	type Data;
 	type InputObject;
 	type Predicate;
@@ -48,6 +58,7 @@ pub type AsExpression<R> = Expression<<R as Repr>::Predicate>;
 #[derive(
 	Debug, Clone, Encode, Decode, TypeInfo, PartialEq, EncodeAsType, DecodeAsType,
 )]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Compact;
 impl Repr for Compact {
 	type Data = Vec<u8>;
@@ -62,9 +73,31 @@ impl Repr for Compact {
 #[derive(
 	Debug, Clone, Encode, Decode, TypeInfo, PartialEq, EncodeAsType, DecodeAsType,
 )]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Expanded;
 impl Repr for Expanded {
 	type Data = Vec<u8>;
 	type InputObject = AsObject<Self>;
 	type Predicate = AtRest;
+}
+
+/// This is a representation of a state transition where all input objects
+/// are fully expanded and available in the transition object. This
+/// representation is used when predicates are evaluated, and is always tied
+/// to an underlying machine that is executing the transition.
+///
+/// This representation requires a reference to the expanded representation
+/// during evaluation. This representation is not serializable, clonable,
+/// copiable or comparable.
+pub struct Executable<'a, F>(core::marker::PhantomData<&'a F>)
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool;
+
+impl<'a, F> Repr for Executable<'a, F>
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	type Data = &'a [u8];
+	type InputObject = AsObject<Self>;
+	type Predicate = InUse<'a, F>;
 }

@@ -1,11 +1,44 @@
 use {
 	super::{Object, Transition},
 	crate::{
-		repr::{Expanded, Repr},
+		expression,
+		repr::{AsExpression, AsObject, AsPredicate, Executable, Expanded, Repr},
+		AtRest,
+		Op,
 		PredicateId,
 	},
+	alloc::{boxed::Box, collections::VecDeque},
 	core::fmt::Debug,
 };
+
+/// Errors that can occur during evaluation of a state transition
+#[derive(Debug, Clone, PartialEq)]
+pub enum Error<'a> {
+	/// Predicate not satisfied in the context of a state transition.
+	PolicyNotSatisfied(&'a AsObject<Expanded>, Location, usize),
+
+	/// Unlock expression of an object not satisfied in the
+	/// context of a state transition.
+	UnlockNotSatisfied(&'a AsObject<Expanded>, Location),
+
+	/// Inconsistent transition instantiation.
+	///
+	/// The `Machine` implementation that was used to convert an
+	/// in-rest transition to an in-use transition returned a transition
+	/// that has a different unlock shape than the original transition.
+	InvalidInstance,
+
+	/// Invalid unlock tree.
+	///
+	/// The unlock tree of an object is not a valid boolean expression tree.
+	InvalidUnlockTree(expression::Error),
+}
+
+impl From<expression::Error> for Error<'_> {
+	fn from(err: expression::Error) -> Self {
+		Error::InvalidUnlockTree(err)
+	}
+}
 
 /// An instance of an executable predicate.
 ///
@@ -152,6 +185,226 @@ impl<'a, P> Role<'a, P> {
 	pub const fn is_unlock(&self) -> bool {
 		matches!(self, Role::Unlock(_, _))
 	}
+}
+
+/// Evaluates the transition in the context of a state transition.
+///
+/// The `'m` lifetime is the lifetime of the Machine that is evaluating the
+/// transition. The `'d` lifetime is the lifetime of the transition Data that is
+/// being evaluated.
+impl<'a, F> Transition<Executable<'a, F>>
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	/// Evaluates the transition in the context of a state transition.
+	pub fn evaluate(
+		self,
+		source: &'a Transition<Expanded>,
+	) -> Result<(), Error<'a>> {
+		// Check that the transition has the same shape as the source transition.
+		if self.inputs.len() != source.inputs.len()
+			|| self.ephemerals.len() != source.ephemerals.len()
+			|| self.outputs.len() != source.outputs.len()
+		{
+			return Err(Error::InvalidInstance);
+		}
+
+		// Check that all input objects have their predicates satisfied.
+		for (instance, object) in self.inputs.into_iter().zip(source.inputs.iter())
+		{
+			eval_object(object, Location::Input, instance, source)?;
+		}
+
+		// Check that all ephemeral objects have their predicates satisfied.
+		for (instance, object) in
+			self.ephemerals.into_iter().zip(source.ephemerals.iter())
+		{
+			eval_object(object, Location::Ephemeral, instance, source)?;
+		}
+
+		// Check that all output objects have their predicates satisfied. For output
+		// object we don't need to evaluate unlock conditions, only policies.
+		for (instance, object) in
+			self.outputs.into_iter().zip(source.outputs.iter())
+		{
+			eval_policies(source, object, instance, Location::Output)?;
+		}
+
+		// all checks passed, transition is valid
+		Ok(())
+	}
+}
+
+fn eval_unlocks<'a, F>(
+	source: &'a Transition<Expanded>,
+	object: &'a AsObject<Expanded>,
+	expression: AsExpression<Executable<'a, F>>,
+	location: Location,
+) -> Result<(), Error<'a>>
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	let mut object_ops = object.unlock.as_ops().iter().rev();
+	let mut instance_ops = expression.to_vec();
+	instance_ops.reverse();
+	let mut instance_ops = instance_ops.into_iter();
+
+	let mut stack = VecDeque::<Box<dyn FnOnce() -> bool>>::new();
+
+	match (object_ops.next(), instance_ops.next()) {
+		(Some(object_op), Some(instance_op)) => match (object_op, instance_op) {
+			(op_pred @ Op::Predicate(pred), Op::Predicate(inst)) => {
+				let index = index_of(object.unlock.as_ops(), op_pred)
+					.expect("predicate not found in object unlock ops");
+				stack.push_back(Box::new(move || {
+					eval_predicate(
+						pred,
+						inst,
+						location,
+						Role::Unlock(pred, index),
+						object,
+						source,
+					)
+				}));
+			}
+			(Op::Not, Op::Not) => match stack.pop_back() {
+				Some(operand) => stack.push_back(Box::new(move || !operand())),
+				None => {
+					return Err(Error::InvalidUnlockTree(
+						expression::Error::MalformedExpression,
+					))
+				}
+			},
+
+			(Op::And, Op::And) => {
+				let left = stack.pop_back().ok_or(Error::InvalidUnlockTree(
+					expression::Error::MalformedExpression,
+				))?;
+				let right = stack.pop_back().ok_or(Error::InvalidUnlockTree(
+					expression::Error::MalformedExpression,
+				))?;
+
+				stack.push_back(Box::new(move || {
+					let left_result = left();
+					if !left_result {
+						return false; // short-circuit
+					}
+					left_result && right()
+				}));
+			}
+			(Op::Or, Op::Or) => {
+				let left = stack.pop_back().ok_or(Error::InvalidUnlockTree(
+					expression::Error::MalformedExpression,
+				))?;
+				let right = stack.pop_back().ok_or(Error::InvalidUnlockTree(
+					expression::Error::MalformedExpression,
+				))?;
+
+				stack.push_back(Box::new(move || {
+					let left_result = left();
+					if left_result {
+						return true; // short-circuit
+					}
+					left_result || right()
+				}));
+			}
+			_ => {
+				return Err(Error::InvalidUnlockTree(
+					expression::Error::MalformedExpression,
+				))
+			}
+		},
+		(None, None) => return Ok(()),
+		_ => return Err(Error::InvalidInstance),
+	}
+
+	if let Some(result_func) = stack.pop_back() {
+		if result_func() {
+			Ok(())
+		} else {
+			Err(Error::UnlockNotSatisfied(object, location))
+		}
+	} else {
+		Err(Error::InvalidUnlockTree(
+			expression::Error::MalformedExpression,
+		))
+	}
+}
+
+fn eval_object<'a, F>(
+	object: &'a AsObject<Expanded>,
+	location: Location,
+	instance: AsObject<Executable<'a, F>>,
+	transition: &'a Transition<Expanded>,
+) -> Result<(), Error<'a>>
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	for (j, (instance, policy)) in instance
+		.policies
+		.into_iter()
+		.zip(object.policies.iter())
+		.enumerate()
+	{
+		let role = Role::Policy(policy, j);
+		if !eval_predicate(policy, instance, location, role, object, transition) {
+			return Err(Error::PolicyNotSatisfied(object, location, j));
+		}
+	}
+
+	eval_unlocks(transition, object, instance.unlock, location)
+}
+
+/// Checks wheter the policies of an object are satisfied.
+///
+/// It takes the transition where the object is located, the object that
+/// contains the policy predicate, the instantiated object that has an
+/// executable instance of the predicate and the location where the object is
+/// located.
+fn eval_policies<'a, F>(
+	transition: &'a Transition<Expanded>,
+	object: &'a AsObject<Expanded>,
+	instance: AsObject<Executable<'a, F>>,
+	location: Location,
+) -> Result<(), Error<'a>>
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	for (j, (instance, policy)) in instance
+		.policies
+		.into_iter()
+		.zip(object.policies.iter())
+		.enumerate()
+	{
+		let role = Role::Policy(policy, j);
+		if !eval_predicate(policy, instance, location, role, object, transition) {
+			return Err(Error::PolicyNotSatisfied(object, location, j));
+		}
+	}
+
+	Ok(())
+}
+
+fn eval_predicate<'a, F>(
+	predicate: &'a AtRest,
+	instance: InUse<'a, F>,
+	location: Location,
+	role: Role<'a, AsPredicate<Expanded>>,
+	object: &'a AsObject<Expanded>,
+	transition: &'a Transition<Expanded>,
+) -> bool
+where
+	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+{
+	instance.eval(
+		Context {
+			location,
+			role,
+			object,
+		},
+		transition,
+		&predicate.params,
+	)
 }
 
 fn index_of<T>(slice: &[T], item: &T) -> Option<usize> {

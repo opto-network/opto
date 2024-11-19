@@ -52,10 +52,10 @@ pub fn apply<T: Config<I>, I: 'static>(
 		// Evaluate the transition. If this does not return any error, the
 		// transition is valid, and we can proceed with state changes.
 		instantiated.evaluate(&expanded).map_err(|e| match e {
-			opto_core::transition::Error::PolicyNotSatisfied(_, _, _) => {
+			opto_core::eval::Error::PolicyNotSatisfied(_, _, _) => {
 				Error::<T, I>::UnsatifiedPolicy
 			}
-			opto_core::transition::Error::UnlockNotSatisfied(_, _) => {
+			opto_core::eval::Error::UnlockNotSatisfied(_, _) => {
 				Error::<T, I>::UnsatifiedUnlockExpression
 			}
 			_ => unreachable!(),
