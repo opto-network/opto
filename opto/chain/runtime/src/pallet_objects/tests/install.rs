@@ -11,14 +11,14 @@ use {
 
 #[test]
 fn empty_state_has_no_predicates() {
-	no_genesis().execute_with(|| {
+	empty_genesis().execute_with(|| {
 		assert_eq!(pallet_objects::Predicates::<Runtime>::iter().count(), 0);
 	});
 }
 
 #[test]
 fn install_predicate_invalid_bytecode() {
-	no_genesis().execute_with(|| {
+	empty_genesis().execute_with(|| {
 		let alice = AccountKeyring::Alice;
 		let origin = RuntimeOrigin::signed(alice.to_account_id());
 		let bytecode = vec![0x00, 0x01, 0x02, 0x03];
@@ -35,7 +35,7 @@ fn install_predicate_invalid_bytecode() {
 #[test]
 fn install_predicate_valid_bytecode() {
 	let bytecode = include_bytes!("./assets/101.wasm").to_vec();
-	no_genesis().execute_with(|| {
+	empty_genesis().execute_with(|| {
 		let alice = AccountKeyring::Alice;
 		let origin = RuntimeOrigin::signed(alice.to_account_id());
 

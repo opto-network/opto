@@ -7,7 +7,7 @@ pub fn install<T: Config<I>, I: 'static>(
 	origin: OriginFor<T>,
 	bytecode: Vec<u8>,
 ) -> DispatchResult {
-	let _ = ensure_signed(origin)?;
+	let _ = ensure_signed_or_root(origin)?;
 
 	// check if the bytecode is within the allowed size limit
 	ensure!(

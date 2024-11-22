@@ -26,6 +26,7 @@ pub struct StoredObject {
 pub mod pallet {
 	use {
 		super::{config::*, *},
+		core::marker::PhantomData,
 		frame::prelude::{
 			frame_system,
 			BuildGenesisConfig,
@@ -58,7 +59,8 @@ pub mod pallet {
 		/// The initial objects that are created in the genesis block.
 		pub objects: Vec<Object>,
 
-		pub phantom: core::marker::PhantomData<(T, I)>,
+		#[serde(skip)]
+		pub phantom: PhantomData<(T, I)>,
 	}
 
 	#[pallet::genesis_build]

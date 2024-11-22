@@ -44,6 +44,8 @@ fn after_genesis() -> TestExternalities {
 		objects: vec![],
 		phantom: Default::default(),
 	}
+	.build_storage()
+	.expect("Failed to build pallet_objects genesis")
 	.assimilate_storage(&mut t)
 	.unwrap();
 
@@ -52,11 +54,7 @@ fn after_genesis() -> TestExternalities {
 	ext
 }
 
-fn at_genesis() -> TestExternalities {
-	TestExternalities::new_empty()
-}
-
-fn no_genesis() -> TestExternalities {
+fn empty_genesis() -> TestExternalities {
 	let mut ext = TestExternalities::new_empty();
 	ext.execute_with(|| System::set_block_number(1));
 	ext

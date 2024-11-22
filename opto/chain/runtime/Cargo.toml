@@ -51,6 +51,8 @@ wasmi = { version = "0.38", default-features = false }
 sp-keyring = { version = "39.0.0", default-features = false }
 blake2.workspace = true
 substrate-wasm-builder = { version = "24.0.1", default-features = false, optional = true }
+ipld-nostd = { version = "0.2.1" }
+core2 = { version = "0.4", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "24.0.1", default-features = false, optional = true }

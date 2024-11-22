@@ -1,5 +1,5 @@
 use {
-	runtime::{BalancesConfig, SudoConfig, WASM_BINARY},
+	runtime::{BalancesConfig, ObjectsConfig, SudoConfig, WASM_BINARY},
 	sc_service::{ChainType, Properties},
 	serde_json::{json, Value},
 	sp_keyring::AccountKeyring,
@@ -60,6 +60,11 @@ fn devnet_genesis() -> Value {
 	json!({
 		"balances": BalancesConfig { balances },
 		"sudo": SudoConfig { key: Some(AccountKeyring::Alice.to_account_id()) },
+		"objects": ObjectsConfig {
+			stdpred: include_bytes!("../../../target/opto-stdpred.car").to_vec(),
+			objects: vec![],
+			phantom: core::marker::PhantomData
+		},
 		"assets": {
 			"assets": vec![(1, AccountKeyring::Alice.to_account_id(), true, 10000)],
 			"metadata": vec![(1, b"Tether USD".to_vec(), b"USDT".to_vec(), 4)],
