@@ -4,7 +4,10 @@
 
 use opto::{
 	repr::Compact,
-	CompactTransitionExt as _,
+	stdpred::{
+		crypto::sr25519::TransitionExt as _,
+		util::nonce::TransitionExt as _,
+	},
 	Hashable,
 	MutatingClient,
 	ReadOnlyClient,
@@ -25,8 +28,8 @@ async fn main() -> anyhow::Result<()> {
 
 	let client = opto::Client::new().await?;
 
-	let alice = opto::sr25519::dev::alice();
-	let charlie = opto::sr25519::dev::charlie();
+	let alice = opto::signer::sr25519::dev::alice();
+	let charlie = opto::signer::sr25519::dev::charlie();
 
 	let alice_account_id = alice.public_key().to_account_id();
 	let charlie_account_id = charlie.public_key().to_account_id();
@@ -65,7 +68,6 @@ async fn main() -> anyhow::Result<()> {
 		.into(),
 		data: wrapped.data,
 	};
-	let output_digest = output.digest();
 
 	let mut transition = Transition::<Compact> {
 		inputs: vec![wrapped_digest],
@@ -73,7 +75,10 @@ async fn main() -> anyhow::Result<()> {
 		outputs: vec![output],
 	};
 
-	transition.sign(&alice);
+	transition.set_nonces();
+	transition.sign_sr25519(&alice);
+
+	let output_digest = transition.outputs[0].digest();
 
 	println!("Transition: {:?}", transition);
 	let (created, destroyed) = client.apply(&charlie, vec![transition]).await?;

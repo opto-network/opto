@@ -1,4 +1,5 @@
 use {
+	alloc::{format, vec::Vec},
 	derive_more::derive::{Display, From, Into},
 	scale::{Decode, Encode},
 	scale_decode::DecodeAsType,
@@ -47,15 +48,7 @@ pub struct PredicateId(pub u32);
 /// the behavior of objects and state transitions in a way that is independent
 /// of the machine that is executing them.
 #[derive(
-	Clone,
-	PartialEq,
-	Eq,
-	Debug,
-	Encode,
-	Decode,
-	TypeInfo,
-	EncodeAsType,
-	DecodeAsType,
+	Clone, PartialEq, Eq, Encode, Decode, TypeInfo, EncodeAsType, DecodeAsType,
 )]
 pub struct AtRest {
 	/// A unique identifier for the predicate.
@@ -76,5 +69,14 @@ pub struct AtRest {
 	/// is evaluated. The format and the meaning of the parameters are defined
 	/// by the predicate's logic and should be looked up in the predicate's
 	/// documentation.
-	pub params: alloc::vec::Vec<u8>,
+	pub params: Vec<u8>,
+}
+
+impl core::fmt::Debug for AtRest {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		f.debug_struct("Predicate")
+			.field("id", &self.id)
+			.field("params", &format!("0x{0}", hex::encode(&self.params)))
+			.finish()
+	}
 }

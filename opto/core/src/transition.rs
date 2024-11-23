@@ -87,7 +87,7 @@ impl<R: Repr> Debug for Transition<R>
 where
 	R::InputObject: Debug,
 	R::Predicate: Debug,
-	R::Data: Debug,
+	R::Data: AsRef<[u8]> + Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Transition")

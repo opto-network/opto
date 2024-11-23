@@ -20,6 +20,7 @@ pub use {
 	object::Object,
 	predicate::{AtRest, PredicateId},
 	scale as codec,
+	subxt_signer as signer,
 	transition::Transition,
 };
 

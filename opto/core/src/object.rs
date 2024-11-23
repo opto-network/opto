@@ -1,7 +1,7 @@
 use {
 	super::Expression,
 	crate::predicate::AtRest,
-	alloc::vec::Vec,
+	alloc::{format, vec::Vec},
 	core::fmt::{Debug, Formatter},
 	scale::{self, Decode, Encode, EncodeLike},
 	scale_info::TypeInfo,
@@ -34,12 +34,12 @@ impl<P: Clone, D: Clone> Clone for Object<P, D> {
 	}
 }
 
-impl<P: Debug, D: Debug> Debug for Object<P, D> {
+impl<P: Debug, D: AsRef<[u8]> + Debug> Debug for Object<P, D> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Object")
 			.field("policies", &self.policies)
 			.field("unlock", &self.unlock)
-			.field("data", &self.data)
+			.field("data", &format!("0x{}", hex::encode(&self.data)))
 			.finish()
 	}
 }

@@ -36,7 +36,7 @@ pub trait Repr
 where
 	Self: Sized,
 {
-	type Data;
+	type Data: AsRef<[u8]>;
 	type InputObject;
 	type Predicate;
 }

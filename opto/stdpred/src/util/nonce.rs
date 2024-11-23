@@ -3,6 +3,7 @@ use {
 	blake2::{digest::consts::U8, Digest},
 	opto_core::{
 		eval::{Context, Location},
+		repr::{Compact, Expanded},
 		Hashable,
 		Transition,
 	},
@@ -75,4 +76,71 @@ fn hash_concat(elems: &[&[u8]]) -> u64 {
 		hasher.update(elem);
 	}
 	u64::from_le_bytes(hasher.finalize().into())
+}
+
+pub trait TransitionExt
+where
+	Self: Sized,
+{
+	fn set_nonces(&mut self);
+}
+
+impl TransitionExt for Transition<Expanded> {
+	fn set_nonces(&mut self) {
+		fn hash_concat(elems: &[&[u8]]) -> u64 {
+			let mut hasher = Hasher::default();
+			for elem in elems {
+				hasher.update(elem);
+			}
+			u64::from_le_bytes(hasher.finalize().into())
+		}
+
+		let mut hasher = Hasher::default();
+		for input in self.inputs.iter() {
+			hasher.update(input.digest());
+		}
+
+		let inputs_hash: [u8; 8] = hasher.finalize().into();
+		for (ix, object) in self.outputs.iter_mut().enumerate() {
+			if let Some(nonce_policy) = object
+				.policies
+				.iter_mut()
+				.find(|p| p.id == crate::util::nonce::nonce_id)
+			{
+				let nonce =
+					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+				nonce_policy.params = nonce.to_le_bytes().to_vec();
+			}
+		}
+	}
+}
+
+impl TransitionExt for Transition<Compact> {
+	fn set_nonces(&mut self) {
+		fn hash_concat(elems: &[&[u8]]) -> u64 {
+			let mut hasher = Hasher::default();
+			for elem in elems {
+				hasher.update(elem);
+			}
+			u64::from_le_bytes(hasher.finalize().into())
+		}
+
+		let mut hasher = Hasher::default();
+		for input in self.inputs.iter() {
+			hasher.update(input);
+		}
+
+		let inputs_hash: [u8; 8] = hasher.finalize().into();
+		for (ix, object) in self.outputs.iter_mut().enumerate() {
+			if let Some(nonce_policy) = object
+				.policies
+				.iter_mut()
+				.find(|p| p.id == crate::util::nonce::nonce_id)
+			{
+				let nonce =
+					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+				nonce_policy.params = nonce.to_le_bytes().to_vec();
+			}
+		}
+	}
 }
