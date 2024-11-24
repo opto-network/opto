@@ -3,7 +3,7 @@ use {
 	opto_core::{
 		eval::Context,
 		repr::Compact,
-		signer::sr25519::Keypair,
+		
 		AtRest,
 		Object,
 		Transition,
@@ -51,6 +51,7 @@ pub fn sr25519(
 	signature_verification(ctx, transition, param, Sr25519SubstrateVerifier)
 }
 
+#[cfg(feature = "offchain")]
 pub trait TransitionExt
 where
 	Self: Sized,
@@ -60,6 +61,10 @@ where
 	fn sign_sr25519(&mut self, signer: &Keypair);
 }
 
+#[cfg(feature = "offchain")]
+use subxt_signer::sr25519::Keypair;
+
+#[cfg(feature = "offchain")]
 impl TransitionExt for Transition<Compact> {
 	type Error = SignatureError;
 

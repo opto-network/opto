@@ -20,7 +20,7 @@ where
 }
 
 /// Utilities that apply to expanded transitions.
-trait ExpandedTransitionExt
+pub trait ExpandedTransitionExt
 where
 	Self: Sized,
 {

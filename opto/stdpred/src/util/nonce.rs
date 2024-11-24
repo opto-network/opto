@@ -78,6 +78,7 @@ fn hash_concat(elems: &[&[u8]]) -> u64 {
 	u64::from_le_bytes(hasher.finalize().into())
 }
 
+#[cfg(feature = "offchain")]
 pub trait TransitionExt
 where
 	Self: Sized,
@@ -85,6 +86,7 @@ where
 	fn set_nonces(&mut self);
 }
 
+#[cfg(feature = "offchain")]
 impl TransitionExt for Transition<Expanded> {
 	fn set_nonces(&mut self) {
 		fn hash_concat(elems: &[&[u8]]) -> u64 {
@@ -115,6 +117,7 @@ impl TransitionExt for Transition<Expanded> {
 	}
 }
 
+#[cfg(feature = "offchain")]
 impl TransitionExt for Transition<Compact> {
 	fn set_nonces(&mut self) {
 		fn hash_concat(elems: &[&[u8]]) -> u64 {

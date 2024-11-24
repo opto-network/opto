@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 opto-core = { path = "../core" }
-opto-stdpred = { path = "../stdpred" }
+opto-stdpred = { path = "../stdpred", features = ["offchain"] }
 
 subxt = { version = "0.38", features = ["substrate-compat"] }
 scale = { workspace = true }
 pallet-assets = { version = "40.0.0" }
 sp-core = { version = "31.0.0" }
+subxt-signer = { version = "0.38" }

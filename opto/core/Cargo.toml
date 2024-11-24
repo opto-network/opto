@@ -40,11 +40,6 @@ derive_more = { workspace = true, features = [
   "deref",
   "as_ref",
 ] }
-subxt-signer = { version = "0.38", default-features = false, features = [
-  "sr25519",
-  "ecdsa",
-  "subxt",
-] }
 
 serde = { workspace = true, default-features = false, features = [
   "derive",

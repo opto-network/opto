@@ -31,7 +31,7 @@ pub fn apply<T: Config<I>, I: 'static>(
 
 		// at-rest version of the transition. This is where all the data, parameters
 		// and other non-executable pieces of the transition are stored.
-		let expanded = expand::<T, I>(transition)?;
+		let expanded = expand::<T, I>(transition.clone())?;
 
 		// an executable version of the predicate that has runnable predicate code
 		// and references to the at-rest version of the transition.
@@ -65,6 +65,8 @@ pub fn apply<T: Config<I>, I: 'static>(
 		for output in expanded.outputs {
 			produce_output::<T, I>(output, false)?;
 		}
+
+		Pallet::<T, I>::deposit_event(Event::StateTransitioned { transition });
 	}
 
 	// now emit events for all consumed and produced objects

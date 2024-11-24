@@ -7,7 +7,7 @@ use alloc::{collections::BTreeSet, format};
 use std::collections::BTreeSet;
 
 use {
-	super::{Config, GenesisConfig, Objects},
+	super::{Config, GenesisConfig},
 	crate::pallet_objects::Pallet,
 	frame_system::RawOrigin,
 	ipld_nostd::CarReader,

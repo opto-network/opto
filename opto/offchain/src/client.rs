@@ -166,7 +166,7 @@ impl MutatingClient for Client {
 
 	async fn wrap(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		asset_id: AssetId,
 		amount: Balance,
 		unlock: Option<Expression>,
@@ -204,7 +204,7 @@ impl MutatingClient for Client {
 
 	async fn unwrap(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		object: &opto_core::Digest,
 	) -> Result<(), <Self as MutatingClient>::Error> {
 		let tx = self
@@ -240,7 +240,7 @@ impl MutatingClient for Client {
 
 	async fn apply(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		transitions: Vec<Transition<Compact>>,
 	) -> Result<(Vec<Digest>, Vec<Digest>), <Self as MutatingClient>::Error> {
 		let tx = self
@@ -283,7 +283,7 @@ impl MutatingClient for Client {
 
 	async fn asset_transfer(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		asset_id: AssetId,
 		amount: Balance,
 		recipient: &AccountId32,
@@ -322,7 +322,7 @@ impl MutatingClient for Client {
 
 	async fn native_transfer(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		amount: Balance,
 		recipient: &AccountId32,
 	) -> Result<(), <Self as MutatingClient>::Error> {

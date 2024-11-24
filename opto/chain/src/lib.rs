@@ -69,6 +69,13 @@ pub async fn start(opts: ChainOpts) -> anyhow::Result<()> {
 				cmd.run(config.chain_spec, config.network)?;
 				return Ok(());
 			}
+			SubCommand::Purge(cmd) => {
+				let config = opts
+					.cmd
+					.create_configuration(&opts, tokio::runtime::Handle::current())?;
+				cmd.run(config.database)?;
+				return Ok(());
+			}
 		}
 	};
 

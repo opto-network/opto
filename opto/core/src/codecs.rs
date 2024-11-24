@@ -1,10 +1,7 @@
 #![allow(clippy::just_underscores_and_digits)]
 
 //! Based on macro expansion from `subxt codegen` cli command.
-use {
-	crate::{repr::Repr, Expression, Object, Op, Transition},
-	scale_decode::{DecodeAsType, IntoVisitor},
-};
+use crate::{repr::{Compact, Expanded}, Expression, Object, Op, Transition};
 
 const _: () = {
 	pub struct Visitor<_0, _1, ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
@@ -559,18 +556,12 @@ where
 const _: () = {
 	pub struct Visitor<
 		ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-		T: Repr + IntoVisitor + DecodeAsType,
-	>(::core::marker::PhantomData<(ScaleDecodeTypeResolver, T)>);
+	>(::core::marker::PhantomData<ScaleDecodeTypeResolver>);
 	use scale_decode::ToString;
-	impl<T: Repr + DecodeAsType + IntoVisitor> scale_decode::IntoVisitor
-		for Transition<T>
-	where
-		T::InputObject: scale_decode::IntoVisitor + DecodeAsType,
-		T::Predicate: scale_decode::IntoVisitor + DecodeAsType,
-		T::Data: scale_decode::IntoVisitor + DecodeAsType,
+	impl scale_decode::IntoVisitor for Transition<Compact>
 	{
 		type AnyVisitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver> =
-			Visitor<ScaleDecodeTypeResolver, T>;
+			Visitor<ScaleDecodeTypeResolver>;
 
 		fn into_visitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
 		) -> Self::AnyVisitor<ScaleDecodeTypeResolver> {
@@ -579,16 +570,11 @@ const _: () = {
 	}
 	impl<
 			ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-			T: Repr + DecodeAsType + IntoVisitor,
-		> scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver, T>
-	where
-		T::InputObject: scale_decode::IntoVisitor + DecodeAsType,
-		T::Predicate: scale_decode::IntoVisitor + DecodeAsType,
-		T::Data: scale_decode::IntoVisitor + DecodeAsType,
+		> scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
 	{
 		type Error = scale_decode::Error;
 		type TypeResolver = ScaleDecodeTypeResolver;
-		type Value<'scale, 'info> = Transition<T>;
+		type Value<'scale, 'info> = Transition<Compact>;
 
 		fn visit_composite<'scale, 'info>(
 			self,
@@ -666,7 +652,7 @@ const _: () = {
 				));
 			}
 			let vals = value;
-			Ok(Transition {
+			Ok(Transition::<Compact>{
 				inputs: {
 					let val = vals.next().expect(
 						"field count should have been checked already on tuple type; \
@@ -691,13 +677,7 @@ const _: () = {
 			})
 		}
 	}
-	impl<T> scale_decode::DecodeAsFields for Transition<T>
-	where
-		T: scale_decode::DecodeAsFields + Repr + IntoVisitor,
-		T::InputObject: scale_decode::DecodeAsFields + IntoVisitor,
-		T::Data: scale_decode::DecodeAsFields + IntoVisitor,
-		T::Predicate: scale_decode::DecodeAsFields + IntoVisitor,
-	{
+	impl scale_decode::DecodeAsFields for Transition<Compact> {
 		fn decode_as_fields<'info, R: scale_decode::TypeResolver>(
 			input: &mut &[u8],
 			fields: &mut dyn scale_decode::FieldIter<'info, R::TypeId>,
@@ -711,7 +691,7 @@ const _: () = {
 				false,
 			);
 			use scale_decode::{IntoVisitor, Visitor};
-			let val = <Transition<T>>::into_visitor()
+			let val = <Transition<Compact>>::into_visitor()
 				.visit_composite(&mut composite, Default::default());
 			composite.skip_decoding()?;
 			*input = composite.bytes_from_undecoded();
@@ -719,13 +699,7 @@ const _: () = {
 		}
 	}
 };
-impl<R> scale_encode::EncodeAsType for Transition<R>
-where
-	R: scale_encode::EncodeAsType + Repr,
-	R::InputObject: scale_encode::EncodeAsType,
-	R::Data: scale_encode::EncodeAsType,
-	R::Predicate: scale_encode::EncodeAsType,
-{
+impl scale_encode::EncodeAsType for Transition<Compact> {
 	#[allow(unused_variables)]
 	fn encode_as_type_to<ScaleEncodeResolver: scale_encode::TypeResolver>(
 		&self,
@@ -756,7 +730,220 @@ where
 		)
 	}
 }
-impl scale_encode::EncodeAsFields for Transition {
+impl scale_encode::EncodeAsFields for Transition<Compact> {
+	#[allow(unused_variables)]
+	fn encode_as_fields_to<ScaleEncodeResolver: scale_encode::TypeResolver>(
+		&self,
+		__encode_as_type_fields: &mut dyn scale_encode::FieldIter<
+			'_,
+			ScaleEncodeResolver::TypeId,
+		>,
+		__encode_as_type_types: &ScaleEncodeResolver,
+		__encode_as_type_out: &mut scale_encode::Vec<u8>,
+	) -> Result<(), scale_encode::Error> {
+		let Transition {
+			inputs,
+			ephemerals,
+			outputs,
+		} = self;
+		scale_encode::Composite::new(
+			[
+				(Some("inputs"), scale_encode::CompositeField::new(inputs)),
+				(
+					Some("ephemerals"),
+					scale_encode::CompositeField::new(ephemerals),
+				),
+				(Some("outputs"), scale_encode::CompositeField::new(outputs)),
+			]
+			.into_iter(),
+		)
+		.encode_composite_fields_to(
+			__encode_as_type_fields,
+			__encode_as_type_types,
+			__encode_as_type_out,
+		)
+	}
+}
+
+
+const _: () = {
+	pub struct Visitor<
+		ScaleDecodeTypeResolver: scale_decode::TypeResolver,
+	>(::core::marker::PhantomData<ScaleDecodeTypeResolver>);
+	use scale_decode::ToString;
+	impl scale_decode::IntoVisitor for Transition<Expanded>
+	{
+		type AnyVisitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver> =
+			Visitor<ScaleDecodeTypeResolver>;
+
+		fn into_visitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
+		) -> Self::AnyVisitor<ScaleDecodeTypeResolver> {
+			Visitor(::core::marker::PhantomData)
+		}
+	}
+	impl<
+			ScaleDecodeTypeResolver: scale_decode::TypeResolver,
+		> scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
+	{
+		type Error = scale_decode::Error;
+		type TypeResolver = ScaleDecodeTypeResolver;
+		type Value<'scale, 'info> = Transition<Expanded>;
+
+		fn visit_composite<'scale, 'info>(
+			self,
+			value: &mut scale_decode::visitor::types::Composite<
+				'scale,
+				'info,
+				Self::TypeResolver,
+			>,
+			type_id: <Self::TypeResolver as scale_decode::TypeResolver>::TypeId,
+		) -> Result<Self::Value<'scale, 'info>, Self::Error> {
+			if value.has_unnamed_fields() {
+				return self.visit_tuple(&mut value.as_tuple(), type_id);
+			}
+			let vals: scale_decode::BTreeMap<Option<&str>, _> = value
+				.map(|res| res.map(|item| (item.name(), item)))
+				.collect::<Result<_, _>>()?;
+			Ok(Transition {
+				inputs: {
+					let val = vals
+						.get(&Some("inputs"))
+						.ok_or_else(|| {
+							scale_decode::Error::new(
+								scale_decode::error::ErrorKind::CannotFindField {
+									name: "inputs".to_string(),
+								},
+							)
+						})?
+						.clone();
+					val.decode_as_type().map_err(|e| e.at_field("inputs"))?
+				},
+				ephemerals: {
+					let val = vals
+						.get(&Some("ephemerals"))
+						.ok_or_else(|| {
+							scale_decode::Error::new(
+								scale_decode::error::ErrorKind::CannotFindField {
+									name: "ephemerals".to_string(),
+								},
+							)
+						})?
+						.clone();
+					val.decode_as_type().map_err(|e| e.at_field("ephemerals"))?
+				},
+				outputs: {
+					let val = vals
+						.get(&Some("outputs"))
+						.ok_or_else(|| {
+							scale_decode::Error::new(
+								scale_decode::error::ErrorKind::CannotFindField {
+									name: "outputs".to_string(),
+								},
+							)
+						})?
+						.clone();
+					val.decode_as_type().map_err(|e| e.at_field("outputs"))?
+				},
+			})
+		}
+
+		fn visit_tuple<'scale, 'info>(
+			self,
+			value: &mut scale_decode::visitor::types::Tuple<
+				'scale,
+				'info,
+				Self::TypeResolver,
+			>,
+			_type_id: <Self::TypeResolver as scale_decode::TypeResolver>::TypeId,
+		) -> Result<Self::Value<'scale, 'info>, Self::Error> {
+			if value.remaining() != 3usize {
+				return Err(scale_decode::Error::new(
+					scale_decode::error::ErrorKind::WrongLength {
+						actual_len: value.remaining(),
+						expected_len: 3usize,
+					},
+				));
+			}
+			let vals = value;
+			Ok(Transition::<Expanded>{
+				inputs: {
+					let val = vals.next().expect(
+						"field count should have been checked already on tuple type; \
+						 please file a bug report",
+					)?;
+					val.decode_as_type().map_err(|e| e.at_field("inputs"))?
+				},
+				ephemerals: {
+					let val = vals.next().expect(
+						"field count should have been checked already on tuple type; \
+						 please file a bug report",
+					)?;
+					val.decode_as_type().map_err(|e| e.at_field("ephemerals"))?
+				},
+				outputs: {
+					let val = vals.next().expect(
+						"field count should have been checked already on tuple type; \
+						 please file a bug report",
+					)?;
+					val.decode_as_type().map_err(|e| e.at_field("outputs"))?
+				},
+			})
+		}
+	}
+	impl scale_decode::DecodeAsFields for Transition<Expanded> {
+		fn decode_as_fields<'info, R: scale_decode::TypeResolver>(
+			input: &mut &[u8],
+			fields: &mut dyn scale_decode::FieldIter<'info, R::TypeId>,
+			types: &'info R,
+		) -> Result<Self, scale_decode::Error> {
+			let mut composite = scale_decode::visitor::types::Composite::new(
+				core::iter::empty(),
+				input,
+				fields,
+				types,
+				false,
+			);
+			use scale_decode::{IntoVisitor, Visitor};
+			let val = <Transition<Expanded>>::into_visitor()
+				.visit_composite(&mut composite, Default::default());
+			composite.skip_decoding()?;
+			*input = composite.bytes_from_undecoded();
+			val.map_err(From::from)
+		}
+	}
+};
+impl scale_encode::EncodeAsType for Transition<Expanded> {
+	#[allow(unused_variables)]
+	fn encode_as_type_to<ScaleEncodeResolver: scale_encode::TypeResolver>(
+		&self,
+		__encode_as_type_type_id: ScaleEncodeResolver::TypeId,
+		__encode_as_type_types: &ScaleEncodeResolver,
+		__encode_as_type_out: &mut scale_encode::Vec<u8>,
+	) -> Result<(), scale_encode::Error> {
+		let Transition {
+			inputs,
+			ephemerals,
+			outputs,
+		} = self;
+		scale_encode::Composite::new(
+			[
+				(Some("inputs"), scale_encode::CompositeField::new(inputs)),
+				(
+					Some("ephemerals"),
+					scale_encode::CompositeField::new(ephemerals),
+				),
+				(Some("outputs"), scale_encode::CompositeField::new(outputs)),
+			]
+			.into_iter(),
+		)
+		.encode_composite_as_type_to(
+			__encode_as_type_type_id,
+			__encode_as_type_types,
+			__encode_as_type_out,
+		)
+	}
+}
+impl scale_encode::EncodeAsFields for Transition<Expanded> {
 	#[allow(unused_variables)]
 	fn encode_as_fields_to<ScaleEncodeResolver: scale_encode::TypeResolver>(
 		&self,

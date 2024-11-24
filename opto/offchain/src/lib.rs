@@ -2,7 +2,14 @@ mod client;
 mod model;
 mod transition;
 
-pub use {client::*, model::api::*, opto_stdpred as stdpred, transition::*};
+pub use {
+	client::*, 
+	model::api::*, 
+	opto_stdpred as stdpred, 
+	transition::*, subxt_signer as signer,
+	subxt::utils::AccountId32,
+};
+
 use {
 	core::future::Future,
 	opto_core::{
@@ -13,7 +20,6 @@ use {
 		PredicateId,
 		Transition,
 	},
-	subxt::utils::AccountId32,
 };
 
 type AssetId = u32;
@@ -54,7 +60,7 @@ pub trait MutatingClient {
 	/// Wraps an asset into an object
 	fn wrap(
 		&self,
-		signer: &opto_core::signer::sr25519::Keypair,
+		signer: &crate::signer::sr25519::Keypair,
 		asset_id: AssetId,
 		amount: Balance,
 		unlock: Option<Expression>,
@@ -63,7 +69,7 @@ pub trait MutatingClient {
 	/// Unwraps an object into an asset
 	fn unwrap(
 		&self,
-		keypair: &opto_core::signer::sr25519::Keypair,
+		keypair: &crate::signer::sr25519::Keypair,
 		object: &Digest,
 	) -> impl Future<Output = Result<(), Self::Error>>;
 
@@ -71,14 +77,14 @@ pub trait MutatingClient {
 	/// Returns hashes of objects (Created, Destroyed)
 	fn apply(
 		&self,
-		keypair: &opto_core::signer::sr25519::Keypair,
+		keypair: &crate::signer::sr25519::Keypair,
 		transitions: Vec<Transition<Compact>>,
 	) -> impl Future<Output = Result<(Vec<Digest>, Vec<Digest>), Self::Error>>;
 
 	/// Transfer an asset.sssss
 	fn asset_transfer(
 		&self,
-		keypair: &opto_core::signer::sr25519::Keypair,
+		keypair: &crate::signer::sr25519::Keypair,
 		asset_id: AssetId,
 		amount: Balance,
 		recipient: &AccountId32,
@@ -87,7 +93,7 @@ pub trait MutatingClient {
 	/// Transfer native tokens.
 	fn native_transfer(
 		&self,
-		keypair: &opto_core::signer::sr25519::Keypair,
+		keypair: &crate::signer::sr25519::Keypair,
 		amount: Balance,
 		recipient: &AccountId32,
 	) -> impl Future<Output = Result<(), Self::Error>>;

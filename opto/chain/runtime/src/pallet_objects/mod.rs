@@ -42,6 +42,8 @@ pub mod pallet {
 	#[cfg(not(feature = "std"))]
 	use alloc::{vec, vec::Vec};
 
+	use repr::Compact;
+
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::genesis_config]
@@ -108,6 +110,7 @@ pub mod pallet {
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		ObjectCreated { object: Object<AtRest, Vec<u8>> },
 		ObjectDestroyed { digest: Digest },
+		StateTransitioned { transition: Transition<Compact> },
 		PredicateInstalled { id: PredicateId },
 	}
 

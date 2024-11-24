@@ -175,6 +175,13 @@ fn wrap_move_unwrap() {
 		));
 
 		System::assert_has_event(
+			pallet_objects::Event::<Runtime>::StateTransitioned{
+				transition
+			}
+			.into(),
+		);
+
+		System::assert_has_event(
 			pallet_objects::Event::<Runtime>::ObjectDestroyed {
 				digest: wrapped_object_digest,
 			}

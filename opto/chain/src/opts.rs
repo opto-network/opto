@@ -1,7 +1,13 @@
 use {
 	crate::spec,
 	clap::{Args, Subcommand},
-	sc_cli::{BuildSpecCmd, CliConfiguration, RunCmd, SubstrateCli},
+	sc_cli::{
+		BuildSpecCmd,
+		CliConfiguration,
+		PurgeChainCmd,
+		RunCmd,
+		SubstrateCli,
+	},
 };
 
 #[derive(Debug, Args)]
@@ -22,6 +28,7 @@ impl ChainOpts {
 #[derive(Debug, Subcommand)]
 pub enum SubCommand {
 	BuildSpec(BuildSpecCmd),
+	Purge(PurgeChainCmd),
 }
 
 impl SubstrateCli for ChainOpts {

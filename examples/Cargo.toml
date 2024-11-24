@@ -8,12 +8,20 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 readme.workspace = true
-publish.workspace = true
+publish = false
 description = "Opto SDK Examples"
 
 [[bin]]
 name = "example-transfer"
 path = "transfer.rs"
+
+[[bin]]
+name = "example-zk-solver"
+path = "zk-solver.rs"
+
+[[bin]]
+name = "example-zk-patron"
+path = "zk-patron.rs"
 
 [dependencies]
 opto = { path = "../opto", features = [
