@@ -6,15 +6,21 @@ use {
 };
 
 mod apply;
+mod init;
 mod install;
 mod unwrap;
 mod wrap;
 
-pub use {apply::apply, install::install, unwrap::unwrap, wrap::wrap};
+pub use {
+	apply::apply,
+	init::{timestamp_update, vrf_update},
+	install::install,
+	unwrap::unwrap,
+	wrap::wrap,
+};
 
 fn consume_input<T: Config<I>, I: 'static>(
 	digest: Digest,
-	emit_event: bool,
 ) -> Result<Object<AtRest, Vec<u8>>, Error<T, I>> {
 	let stored_object = Objects::<T, I>::get(digest) //
 		.ok_or(Error::<T, I>::InputObjectNotFound)?;
@@ -33,31 +39,24 @@ fn consume_input<T: Config<I>, I: 'static>(
 		});
 	}
 
-	if emit_event {
-		Pallet::<T, I>::deposit_event(Event::ObjectDestroyed { digest });
-	}
-
 	Ok(stored_object.object)
 }
 
 fn produce_output<T: Config<I>, I: 'static>(
 	object: Object<AtRest, Vec<u8>>,
-	emit_event: bool,
 ) -> Result<Digest, Error<T, I>> {
 	if object.encoded_size() > T::MaximumObjectSize::get() as usize {
 		return Err(Error::<T, I>::ObjectTooLarge);
+	}
+
+	if object.policies.len() > T::MaximumObjectPolicies::get() as usize {
+		return Err(Error::<T, I>::TooManyPolicies);
 	}
 
 	let digest = object.digest();
 	let instance_count = Objects::<T, I>::get(digest)
 		.map_or(0, |o| o.instance_count)
 		.saturating_add(1);
-
-	if emit_event {
-		Pallet::<T, I>::deposit_event(Event::ObjectCreated {
-			object: object.clone(),
-		});
-	}
 
 	let stored_object = StoredObject {
 		instance_count,

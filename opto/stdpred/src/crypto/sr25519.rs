@@ -1,20 +1,8 @@
 use {
 	super::signature::{signature_verification, Verifier},
-	opto_core::{
-		eval::Context,
-		repr::Compact,
-		
-		AtRest,
-		Object,
-		Transition,
-	},
-	schnorrkel::{
-		PublicKey,
-		Signature,
-		SignatureError,
-		PUBLIC_KEY_LENGTH,
-		SIGNATURE_LENGTH,
-	},
+	opto_core::*,
+	opto_onchain::predicate,
+	schnorrkel::{PublicKey, Signature, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH},
 };
 
 const SIGNING_CTX: &[u8] = b"substrate";
@@ -42,9 +30,9 @@ impl Verifier for Sr25519SubstrateVerifier {
 	}
 }
 
-#[opto_onchain::predicate(id = 201, core_crate = opto_core)]
+#[predicate(id = 201, core_crate = opto_core)]
 pub fn sr25519(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	param: &[u8],
 ) -> bool {
@@ -58,7 +46,7 @@ where
 {
 	type Error;
 
-	fn sign_sr25519(&mut self, signer: &Keypair);
+	fn sign_with_sr25519(&mut self, signer: &Keypair);
 }
 
 #[cfg(feature = "offchain")]
@@ -66,9 +54,9 @@ use subxt_signer::sr25519::Keypair;
 
 #[cfg(feature = "offchain")]
 impl TransitionExt for Transition<Compact> {
-	type Error = SignatureError;
+	type Error = schnorrkel::SignatureError;
 
-	fn sign_sr25519(&mut self, signer: &Keypair) {
+	fn sign_with_sr25519(&mut self, signer: &Keypair) {
 		let predicate_id = sr25519_id;
 		let pubkey = signer.public_key();
 		let predicate = opto_core::AtRest {

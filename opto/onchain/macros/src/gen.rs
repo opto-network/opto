@@ -8,11 +8,11 @@ pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 			codec::Decode,
 		};
 
-		let mut transision = unsafe {
+		let mut transition = unsafe {
 			::core::slice::from_raw_parts(transition_ptr, transition_len as usize)
 		};
 
-		let transition: Transition = Decode::decode(&mut transision)
+		let transition: Transition = Decode::decode(&mut transition)
 			.expect("Failed to decode transition bytes");
 
 
@@ -45,6 +45,7 @@ pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 			role,
 			object,
 			location,
+			env: &PredicateEnvironment,
 		};
 	}
 }

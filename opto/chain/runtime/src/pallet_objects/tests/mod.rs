@@ -1,16 +1,13 @@
 use {
 	super::*,
-	crate::{
-		interface::AccountId,
-		pallet_objects::{self, *},
-		Runtime,
-		System,
-	},
+	crate::{interface::AccountId, pallet_objects, Runtime},
 	sp_io::TestExternalities,
 	sp_runtime::BuildStorage,
+	utils::run_to_block,
 };
 
 mod apply;
+mod env;
 mod install;
 mod unwrap;
 mod utils;
@@ -28,6 +25,12 @@ pub(crate) const NONCE_PREDICATE: PredicateId =
 	<Runtime as pallet_objects::Config>::NoncePolicyPredicate::get();
 
 #[allow(dead_code)]
+pub(crate) const AFTER_TIME_PREDICATE: PredicateId = PredicateId(402);
+
+#[allow(dead_code)]
+pub(crate) const AFTER_BLOCK_PREDICATE: PredicateId = PredicateId(403);
+
+#[allow(dead_code)]
 pub(crate) const DEFAULT_SIGNATURE_PREDICATE: PredicateId =
 	<Runtime as pallet_objects::Config>::DefaultSignatureVerifyPredicate::get();
 
@@ -42,7 +45,7 @@ fn after_genesis() -> TestExternalities {
 		stdpred: include_bytes!("../../../../../../target/opto-stdpred.car")
 			.to_vec(),
 		objects: vec![],
-		phantom: Default::default(),
+		..Default::default()
 	}
 	.build_storage()
 	.expect("Failed to build pallet_objects genesis")
@@ -50,12 +53,12 @@ fn after_genesis() -> TestExternalities {
 	.unwrap();
 
 	let mut ext = TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| run_to_block(1));
 	ext
 }
 
 fn empty_genesis() -> TestExternalities {
 	let mut ext = TestExternalities::new_empty();
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| run_to_block(1));
 	ext
 }

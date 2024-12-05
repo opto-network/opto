@@ -61,6 +61,11 @@ impl Digest {
 	// https://github.com/multiformats/multicodec/blob/master/table.csv
 	pub const MULTIHASH_CODE: u64 = 0xb220;
 	pub const SIZE: usize = size_of::<Self>();
+	pub const ZERO: Self = Digest([0; 32]);
+
+	pub const fn new(data: [u8; 32]) -> Self {
+		Self(data)
+	}
 
 	pub fn compute(data: &[u8]) -> Self {
 		use blake2::Digest as _;
@@ -120,12 +125,6 @@ mod test {
 	impl From<&str> for Digest {
 		fn from(value: &str) -> Self {
 			Self::compute(value.as_bytes())
-		}
-	}
-
-	impl From<&[u8]> for Digest {
-		fn from(value: &[u8]) -> Self {
-			Self::compute(value)
 		}
 	}
 }

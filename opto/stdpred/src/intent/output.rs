@@ -1,6 +1,7 @@
 use {
 	crate::utils::is_unlock,
-	opto_core::{eval::Context, Transition},
+	opto_core::*,
+	opto_onchain::predicate,
 	scale::Decode,
 };
 
@@ -8,9 +9,9 @@ use {
 /// The parameter is a SCALE encoded expected output object.
 ///
 /// This predicate is the foundational building block for intents.
-#[opto_onchain::predicate(id = 300, core_crate = opto_core)]
+#[predicate(id = 300, core_crate = opto_core)]
 pub fn output(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	params: &[u8],
 ) -> bool {

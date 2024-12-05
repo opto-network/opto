@@ -1,19 +1,19 @@
 use {
 	crate::utils::*,
 	blake2::{digest::consts::U8, Digest},
-	opto_core::{
-		eval::{Context, Location},
-		repr::{Compact, Expanded},
-		Hashable,
-		Transition,
-	},
+	opto_core::*,
+	opto_onchain::predicate,
 };
 
 // u64 is 8 bytes
 type Hasher = blake2::Blake2b<U8>;
 
-#[opto_onchain::predicate(id = 101, core_crate = opto_core)]
-pub fn nonce(ctx: Context<'_>, transition: &Transition, param: &[u8]) -> bool {
+#[predicate(id = 101, core_crate = opto_core)]
+pub fn nonce(
+	ctx: Context<'_, impl Environment>,
+	transition: &Transition,
+	param: &[u8],
+) -> bool {
 	ensure!(is_policy(&ctx));
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(param.len() == size_of::<u64>());
@@ -54,7 +54,10 @@ pub fn nonce(ctx: Context<'_>, transition: &Transition, param: &[u8]) -> bool {
 	}
 }
 
-fn is_first_output_nonce(ctx: &Context<'_>, transition: &Transition) -> bool {
+fn is_first_output_nonce(
+	ctx: &Context<'_, impl Environment>,
+	transition: &Transition,
+) -> bool {
 	let object_index = ctx
 		.object_index(transition)
 		.expect("invalid predicate context");

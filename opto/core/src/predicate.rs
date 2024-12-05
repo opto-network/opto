@@ -48,7 +48,15 @@ pub struct PredicateId(pub u32);
 /// the behavior of objects and state transitions in a way that is independent
 /// of the machine that is executing them.
 #[derive(
-	Clone, PartialEq, Eq, Encode, Decode, TypeInfo, EncodeAsType, DecodeAsType,
+	Clone,
+	PartialEq,
+	Eq,
+	Encode,
+	Decode,
+	TypeInfo,
+	EncodeAsType,
+	DecodeAsType,
+	Hash,
 )]
 pub struct AtRest {
 	/// A unique identifier for the predicate.

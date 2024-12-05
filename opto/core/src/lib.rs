@@ -4,6 +4,7 @@ extern crate alloc;
 
 mod codecs;
 pub mod digest;
+pub mod env;
 pub mod eval;
 pub mod expression;
 pub mod object;
@@ -16,9 +17,12 @@ mod serde;
 
 pub use {
 	digest::{Digest, Hashable},
+	env::Environment,
+	eval::{Context, Error as EvalError, Location, Role},
 	expression::{Expression, Op},
 	object::Object,
 	predicate::{AtRest, PredicateId},
+	repr::{Compact, Expanded},
 	scale as codec,
 	transition::Transition,
 };

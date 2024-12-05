@@ -3,15 +3,17 @@ mod model;
 mod transition;
 
 pub use {
-	client::*, 
-	model::api::*, 
-	opto_stdpred as stdpred, 
-	transition::*, subxt_signer as signer,
+	client::*,
+	futures,
+	model::api::*,
+	opto_stdpred as stdpred,
 	subxt::utils::AccountId32,
+	subxt_signer as signer,
+	transition::*,
 };
-
 use {
 	core::future::Future,
+	futures::Stream,
 	opto_core::{
 		repr::Compact,
 		Digest,
@@ -24,6 +26,15 @@ use {
 
 type AssetId = u32;
 type Balance = u64;
+
+pub trait StreamingClient {
+	type Error;
+
+	/// Returns a stream of state transitions.
+	fn transitions(
+		&self,
+	) -> impl Stream<Item = Result<Transition<Compact>, Self::Error>>;
+}
 
 pub trait ReadOnlyClient {
 	type Error;
@@ -79,7 +90,7 @@ pub trait MutatingClient {
 		&self,
 		keypair: &crate::signer::sr25519::Keypair,
 		transitions: Vec<Transition<Compact>>,
-	) -> impl Future<Output = Result<(Vec<Digest>, Vec<Digest>), Self::Error>>;
+	) -> impl Future<Output = Result<(), Self::Error>>;
 
 	/// Transfer an asset.sssss
 	fn asset_transfer(

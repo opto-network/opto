@@ -1,5 +1,5 @@
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 
 use {
 	super::*,
@@ -31,7 +31,7 @@ pub fn wrap<T: Config<I>, I: 'static>(
 	)?;
 
 	if let Some(unlock) = unlock.as_ref() {
-		// check if all predicates in the unlock expression are installed
+		// check that all predicates in the unlock expression are installed
 		ensure!(
 			unlock.as_ops().iter().all(|op| match op {
 				Op::Predicate(AtRest { id, .. }) => {
@@ -77,7 +77,15 @@ pub fn wrap<T: Config<I>, I: 'static>(
 		data: amount.encode(),
 	};
 
-	produce_output::<T, I>(object, true)?;
+	produce_output::<T, I>(object.clone())?;
+
+	Pallet::<T, I>::deposit_event(Event::StateTransitioned {
+		transition: Transition {
+			inputs: vec![],
+			ephemerals: vec![],
+			outputs: vec![object],
+		},
+	});
 
 	Ok(())
 }

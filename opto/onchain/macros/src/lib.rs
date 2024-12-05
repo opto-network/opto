@@ -36,6 +36,10 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 	let cfg_target = syn::Ident::new(pred_id.as_str(), Span::call_site());
 	let context_expand = gen::predicate_context(&crate_name);
 
+	let env_code = include_str!("env.rs.txt")
+		.replace("#core_crate", crate_name.to_string().as_str());
+	let env_code: proc_macro2::TokenStream = env_code.parse().unwrap();
+
 	let output = quote! {
 		#item
 
@@ -44,6 +48,8 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 
 		#[cfg(#cfg_target)]
 		mod __abi_impl {
+
+			#env_code
 
 			#[export_name="_pred_id"]
 			static PRED_ID: u32 = #id_lit;

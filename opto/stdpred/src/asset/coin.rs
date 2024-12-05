@@ -18,16 +18,18 @@
 
 use {
 	crate::{ensure, utils::*},
-	opto_core::{
-		eval::Context,
-		repr::{AsObject, Expanded},
-		Transition,
-	},
+	opto_core::*,
+	opto_onchain::predicate,
+	repr::AsObject,
 	scale::Decode,
 };
 
-#[opto_onchain::predicate(id = 1000, core_crate = opto_core)]
-pub fn coin(ctx: Context<'_>, transition: &Transition, params: &[u8]) -> bool {
+#[predicate(id = 1000, core_crate = opto_core)]
+pub fn coin(
+	ctx: Context<'_, impl Environment>,
+	transition: &Transition,
+	params: &[u8],
+) -> bool {
 	ensure!(is_policy(&ctx));
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(is_only_policy_of_this_type(&ctx));
@@ -58,7 +60,7 @@ enum Error {
 /// on a given set of objects. This is used to sum up all input coins
 /// or all output coins in a state transition.
 fn total_balance(
-	ctx: &Context<'_>,
+	ctx: &Context<'_, impl Environment>,
 	set: &[AsObject<Expanded>],
 	coinid: &[u8],
 ) -> Result<u64, Error> {

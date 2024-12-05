@@ -1,5 +1,5 @@
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 
 use {
 	super::*,
@@ -14,7 +14,15 @@ pub fn unwrap<T: Config<I> + pallet_assets::Config<I>, I: 'static>(
 	let beneficiary = ensure_signed(origin)?;
 
 	// get & remove from state
-	let mut object = consume_input::<T, I>(digest, true)?;
+	let mut object = consume_input::<T, I>(digest)?;
+
+	Pallet::<T, I>::deposit_event(Event::StateTransitioned {
+		transition: Transition {
+			inputs: vec![digest],
+			ephemerals: vec![],
+			outputs: vec![],
+		},
+	});
 
 	// strip optional nonce policy
 	object

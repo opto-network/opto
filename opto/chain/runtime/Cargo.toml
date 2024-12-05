@@ -54,6 +54,12 @@ substrate-wasm-builder = { version = "24.0.1", default-features = false, optiona
 ipld-nostd = { version = "0.2.1" }
 core2 = { version = "0.4", default-features = false }
 
+[dev-dependencies]
+opto-core = { path = "../../core", package = "opto-core", features = [
+  "serde",
+  "test",
+], default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "24.0.1", default-features = false, optional = true }
 

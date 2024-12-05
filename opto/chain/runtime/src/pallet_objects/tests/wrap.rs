@@ -9,12 +9,7 @@ use {
 		pallet_objects::{
 			self,
 			tests::{
-				utils::{
-					install_test_predicates,
-					mint_asset,
-					mint_native_token,
-					run_to_block,
-				},
+				utils::{mint_asset, mint_native_token},
 				NONCE_PREDICATE,
 				PREIMAGE_PREDICATE,
 				VAULT,
@@ -30,7 +25,7 @@ use {
 
 #[test]
 fn empty_state_has_no_objects() {
-	TestState::new_empty().execute_with(|| {
+	empty_genesis().execute_with(|| {
 		assert_eq!(pallet_objects::Objects::<Runtime>::iter().count(), 0);
 	});
 }
@@ -72,11 +67,7 @@ fn wrap_asset_into_object_default_unlock() {
 
 	let expected_object_digest = expected_object.digest();
 
-	TestState::new_empty().execute_with(|| {
-		// events are not emitted on the genesis block
-		// so here we're setting the block number to 1
-		System::set_block_number(1);
-
+	after_genesis().execute_with(|| {
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
 			None
@@ -137,8 +128,12 @@ fn wrap_asset_into_object_default_unlock() {
 		assert_eq!(object.object, expected_object);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: expected_object.clone(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![],
+					ephemerals: vec![],
+					outputs: vec![expected_object],
+				},
 			}
 			.into(),
 		);
@@ -201,15 +196,7 @@ fn wrap_asset_into_object_custom_unlock() {
 
 	let expected_object_digest = expected_object.digest();
 
-	TestState::new_empty().execute_with(|| {
-		// events are not emitted on the genesis block
-		// so here we're setting the block number to 1
-		System::set_block_number(1);
-
-		install_test_predicates().expect("installing test predicates failed");
-
-		run_to_block(10);
-
+	after_genesis().execute_with(|| {
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
 			None
@@ -270,11 +257,16 @@ fn wrap_asset_into_object_custom_unlock() {
 		assert_eq!(object.object, expected_object);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: expected_object.clone(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![],
+					ephemerals: vec![],
+					outputs: vec![expected_object],
+				},
 			}
 			.into(),
 		);
+
 		System::assert_has_event(
 			pallet_assets::Event::<Runtime>::Transferred {
 				asset_id: 1,
@@ -333,11 +325,7 @@ fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
 
 	let expected_object_digest = expected_object.digest();
 
-	TestState::new_empty().execute_with(|| {
-		// events are not emitted on the genesis block
-		// so here we're setting the block number to 1
-		System::set_block_number(1);
-
+	after_genesis().execute_with(|| {
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(expected_object_digest),
 			None

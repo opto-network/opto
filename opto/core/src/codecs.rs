@@ -1,7 +1,14 @@
 #![allow(clippy::just_underscores_and_digits)]
 
 //! Based on macro expansion from `subxt codegen` cli command.
-use crate::{repr::{Compact, Expanded}, Expression, Object, Op, Transition};
+use crate::{
+	repr::{Compact, Expanded},
+	Expression,
+	Hashable,
+	Object,
+	Op,
+	Transition,
+};
 
 const _: () = {
 	pub struct Visitor<_0, _1, ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
@@ -160,8 +167,8 @@ const _: () = {
 };
 impl<_0, _1> scale_encode::EncodeAsType for Object<_0, _1>
 where
-	_0: scale_encode::EncodeAsType,
-	_1: scale_encode::EncodeAsType,
+	_0: scale_encode::EncodeAsType + Hashable,
+	_1: scale_encode::EncodeAsType + Hashable,
 {
 	#[allow(unused_variables)]
 	fn encode_as_type_to<ScaleEncodeResolver: scale_encode::TypeResolver>(
@@ -183,6 +190,10 @@ where
 				),
 				(Some("unlock"), scale_encode::CompositeField::new(unlock)),
 				(Some("data"), scale_encode::CompositeField::new(data)),
+				(
+					Some("digest"),
+					scale_encode::CompositeField::new(&self.digest()),
+				),
 			]
 			.into_iter(),
 		)
@@ -554,12 +565,11 @@ where
 }
 
 const _: () = {
-	pub struct Visitor<
-		ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-	>(::core::marker::PhantomData<ScaleDecodeTypeResolver>);
+	pub struct Visitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
+		::core::marker::PhantomData<ScaleDecodeTypeResolver>,
+	);
 	use scale_decode::ToString;
-	impl scale_decode::IntoVisitor for Transition<Compact>
-	{
+	impl scale_decode::IntoVisitor for Transition<Compact> {
 		type AnyVisitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver> =
 			Visitor<ScaleDecodeTypeResolver>;
 
@@ -568,9 +578,8 @@ const _: () = {
 			Visitor(::core::marker::PhantomData)
 		}
 	}
-	impl<
-			ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-		> scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
+	impl<ScaleDecodeTypeResolver: scale_decode::TypeResolver>
+		scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
 	{
 		type Error = scale_decode::Error;
 		type TypeResolver = ScaleDecodeTypeResolver;
@@ -652,7 +661,7 @@ const _: () = {
 				));
 			}
 			let vals = value;
-			Ok(Transition::<Compact>{
+			Ok(Transition::<Compact> {
 				inputs: {
 					let val = vals.next().expect(
 						"field count should have been checked already on tuple type; \
@@ -765,14 +774,12 @@ impl scale_encode::EncodeAsFields for Transition<Compact> {
 	}
 }
 
-
 const _: () = {
-	pub struct Visitor<
-		ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-	>(::core::marker::PhantomData<ScaleDecodeTypeResolver>);
+	pub struct Visitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver>(
+		::core::marker::PhantomData<ScaleDecodeTypeResolver>,
+	);
 	use scale_decode::ToString;
-	impl scale_decode::IntoVisitor for Transition<Expanded>
-	{
+	impl scale_decode::IntoVisitor for Transition<Expanded> {
 		type AnyVisitor<ScaleDecodeTypeResolver: scale_decode::TypeResolver> =
 			Visitor<ScaleDecodeTypeResolver>;
 
@@ -781,9 +788,8 @@ const _: () = {
 			Visitor(::core::marker::PhantomData)
 		}
 	}
-	impl<
-			ScaleDecodeTypeResolver: scale_decode::TypeResolver,
-		> scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
+	impl<ScaleDecodeTypeResolver: scale_decode::TypeResolver>
+		scale_decode::Visitor for Visitor<ScaleDecodeTypeResolver>
 	{
 		type Error = scale_decode::Error;
 		type TypeResolver = ScaleDecodeTypeResolver;
@@ -865,7 +871,7 @@ const _: () = {
 				));
 			}
 			let vals = value;
-			Ok(Transition::<Expanded>{
+			Ok(Transition::<Expanded> {
 				inputs: {
 					let val = vals.next().expect(
 						"field count should have been checked already on tuple type; \

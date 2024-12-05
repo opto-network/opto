@@ -5,6 +5,8 @@ pub trait WeightInfo {
 	fn unwrap() -> Weight;
 	fn apply() -> Weight;
 	fn install() -> Weight;
+	fn vrf_init() -> Weight;
+	fn timestamp_init() -> Weight;
 }
 
 pub struct SubstrateWeightInfo;
@@ -22,6 +24,14 @@ impl WeightInfo for SubstrateWeightInfo {
 	}
 
 	fn apply() -> Weight {
+		Weight::from_all(1)
+	}
+
+	fn vrf_init() -> Weight {
+		Weight::from_all(1)
+	}
+
+	fn timestamp_init() -> Weight {
 		Weight::from_all(1)
 	}
 }

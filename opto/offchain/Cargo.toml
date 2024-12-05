@@ -12,3 +12,6 @@ scale = { workspace = true }
 pallet-assets = { version = "40.0.0" }
 sp-core = { version = "31.0.0" }
 subxt-signer = { version = "0.38" }
+futures = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { version = "0.1" }

@@ -22,7 +22,7 @@ use {
 		TransportError,
 	},
 	log::{debug, info},
-	opto_core::{Digest, Object},
+	opto_core::{Object, Transition},
 	scale::{Decode, Encode},
 	std::sync::OnceLock,
 	thiserror::Error,
@@ -88,15 +88,13 @@ pub enum SetupError {
 
 #[derive(Encode, Decode, Debug)]
 pub enum NetworkEvent {
-	ObjectCreated(Object),
-	ObjectDestroyed(Digest),
+	StateTransitioned(Transition),
 	Disconnected,
 }
 
 #[derive(Encode, Decode, Debug)]
 pub enum ObjectEvent {
-	Created(Object),
-	Destroyed(Digest),
+	StateTransitioned(Object),
 }
 
 pub struct Network {

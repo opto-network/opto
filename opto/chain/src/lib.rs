@@ -7,6 +7,7 @@ pub use opts::ChainOpts;
 use {
 	futures::{FutureExt, Stream},
 	log::error,
+	opto_core::repr::Compact,
 	opts::SubCommand,
 	sc_cli::CliConfiguration,
 	tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver},
@@ -14,8 +15,7 @@ use {
 
 #[derive(Debug)]
 pub enum Event {
-	ObjectCreated(opto_core::Object),
-	ObjectDestroyed(opto_core::Digest),
+	StateTransitioned(opto_core::Transition<Compact>),
 	PredicateInstalled(opto_core::PredicateId),
 	ChainFailed(anyhow::Error),
 }

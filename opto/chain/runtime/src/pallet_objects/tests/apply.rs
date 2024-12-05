@@ -7,7 +7,6 @@ use {
 				utils::{
 					create_asset,
 					fixup_nonces_compact,
-					install_test_predicates,
 					mint_asset,
 					mint_native_token,
 					sign,
@@ -36,36 +35,6 @@ fn wrap_move_unwrap() {
 	const WRAPPED_AMOUNT: u64 = 300000;
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
-	let nonce = blake2_64(
-		&[
-			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
-			0u32.encode().as_slice(),
-		]
-		.concat(),
-	);
-
-	let wrapped_object = Object {
-		policies: vec![
-			AtRest {
-				id: COIN_PREDICATE,
-				params: ASSET_ID.encode(),
-			},
-			AtRest {
-				id: NONCE_PREDICATE,
-				params: nonce.to_vec(),
-			},
-		],
-		unlock: vec![Op::Predicate(AtRest {
-			id: DEFAULT_SIGNATURE_PREDICATE,
-			params: AccountKeyring::Alice.to_account_id().encode(),
-		})]
-		.try_into()
-		.expect("default unlock expression is invalid"),
-		data: WRAPPED_AMOUNT.encode(),
-	};
-
-	let wrapped_object_digest = wrapped_object.digest();
-
 	let moved_object = Object {
 		policies: vec![
 			AtRest {
@@ -86,13 +55,7 @@ fn wrap_move_unwrap() {
 		.unwrap(),
 	};
 
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
-		// events are not emitted on the genesis block
-		// so here we're setting the block number to 1
-		System::set_block_number(1);
-
+	after_genesis().execute_with(|| {
 		mint_native_token(
 			&AccountKeyring::Alice.to_account_id(),
 			NATIVE_TOKEN_BALANCE,
@@ -122,6 +85,38 @@ fn wrap_move_unwrap() {
 		)
 		.unwrap();
 
+		let object_nonce = blake2_64(
+			&[
+				AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+				System::account_nonce(AccountKeyring::Alice.to_account_id())
+					.encode()
+					.as_slice(),
+			]
+			.concat(),
+		);
+
+		let wrapped_object = Object {
+			policies: vec![
+				AtRest {
+					id: COIN_PREDICATE,
+					params: ASSET_ID.encode(),
+				},
+				AtRest {
+					id: NONCE_PREDICATE,
+					params: object_nonce.to_vec(),
+				},
+			],
+			unlock: vec![Op::Predicate(AtRest {
+				id: DEFAULT_SIGNATURE_PREDICATE,
+				params: AccountKeyring::Alice.to_account_id().encode(),
+			})]
+			.try_into()
+			.expect("default unlock expression is invalid"),
+			data: WRAPPED_AMOUNT.encode(),
+		};
+
+		let wrapped_object_digest = wrapped_object.digest();
+
 		// wrap asset into object using default unlocks
 		pallet_objects::Pallet::<Runtime>::wrap(
 			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
@@ -150,8 +145,12 @@ fn wrap_move_unwrap() {
 		assert_eq!(object.object, wrapped_object);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: wrapped_object.clone(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![],
+					ephemerals: vec![],
+					outputs: vec![wrapped_object.clone()],
+				},
 			}
 			.into(),
 		);
@@ -171,28 +170,11 @@ fn wrap_move_unwrap() {
 
 		assert_ok!(pallet_objects::Pallet::<Runtime>::apply(
 			RuntimeOrigin::signed(AccountKeyring::Charlie.to_account_id()),
-			vec![transition]
+			vec![transition.clone()]
 		));
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::StateTransitioned{
-				transition
-			}
-			.into(),
-		);
-
-		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectDestroyed {
-				digest: wrapped_object_digest,
-			}
-			.into(),
-		);
-
-		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: moved_object.clone(),
-			}
-			.into(),
+			pallet_objects::Event::<Runtime>::StateTransitioned { transition }.into(),
 		);
 
 		assert_eq!(
@@ -232,8 +214,12 @@ fn wrap_move_unwrap() {
 		);
 
 		System::assert_has_event(
-			pallet_objects::Event::ObjectDestroyed {
-				digest: moved_object_digest,
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![moved_object.digest()],
+					ephemerals: vec![],
+					outputs: vec![],
+				},
 			}
 			.into(),
 		);
@@ -261,36 +247,6 @@ fn move_object_wrong_unlock() {
 	const WRAPPED_AMOUNT: u64 = 300000;
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
-	let nonce = blake2_64(
-		&[
-			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
-			0u32.encode().as_slice(),
-		]
-		.concat(),
-	);
-
-	let wrapped_object = Object {
-		policies: vec![
-			AtRest {
-				id: COIN_PREDICATE,
-				params: ASSET_ID.encode(),
-			},
-			AtRest {
-				id: NONCE_PREDICATE,
-				params: nonce.to_vec(),
-			},
-		],
-		unlock: vec![Op::Predicate(AtRest {
-			id: DEFAULT_SIGNATURE_PREDICATE,
-			params: AccountKeyring::Alice.to_account_id().encode(),
-		})]
-		.try_into()
-		.expect("default unlock expression is invalid"),
-		data: WRAPPED_AMOUNT.encode(),
-	};
-
-	let wrapped_object_digest = wrapped_object.digest();
-
 	let moved_object = Object {
 		policies: vec![
 			AtRest {
@@ -311,9 +267,7 @@ fn move_object_wrong_unlock() {
 		.unwrap(),
 	};
 
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
+	after_genesis().execute_with(|| {
 		// events are not emitted on the genesis block
 		// so here we're setting the block number to 1
 		System::set_block_number(1);
@@ -347,6 +301,36 @@ fn move_object_wrong_unlock() {
 		)
 		.unwrap();
 
+		let nonce = blake2_64(
+			&[
+				AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+				0u32.encode().as_slice(),
+			]
+			.concat(),
+		);
+
+		let wrapped_object = Object {
+			policies: vec![
+				AtRest {
+					id: COIN_PREDICATE,
+					params: ASSET_ID.encode(),
+				},
+				AtRest {
+					id: NONCE_PREDICATE,
+					params: nonce.to_vec(),
+				},
+			],
+			unlock: vec![Op::Predicate(AtRest {
+				id: DEFAULT_SIGNATURE_PREDICATE,
+				params: AccountKeyring::Alice.to_account_id().encode(),
+			})]
+			.try_into()
+			.expect("default unlock expression is invalid"),
+			data: WRAPPED_AMOUNT.encode(),
+		};
+
+		let wrapped_object_digest = wrapped_object.digest();
+
 		// wrap asset into object using default unlocks
 		pallet_objects::Pallet::<Runtime>::wrap(
 			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
@@ -375,8 +359,12 @@ fn move_object_wrong_unlock() {
 		assert_eq!(object.object, wrapped_object);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: wrapped_object.clone(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![],
+					ephemerals: vec![],
+					outputs: vec![wrapped_object],
+				},
 			}
 			.into(),
 		);

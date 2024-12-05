@@ -1,7 +1,4 @@
-use opto_core::{
-	eval::{Context, Location, Role},
-	transition::Transition,
-};
+use {opto_core::*, opto_onchain::predicate};
 
 /// Constant
 ///
@@ -14,9 +11,9 @@ use opto_core::{
 ///
 /// When used on an ephemeral or output object policy, it will always evaluate
 /// to true.
-#[opto_onchain::predicate(id = 100, core_crate = opto_core)]
+#[predicate(id = 100, core_crate = opto_core)]
 pub fn constant(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	params: &[u8],
 ) -> bool {
@@ -35,17 +32,17 @@ mod tests {
 	use {
 		crate::native_impl_factory,
 		alloc::vec,
-		opto_core::{eval::Location, test::*, transition::Error, Transition},
+		opto_core::{test::*, *},
 	};
 
 	#[test]
 	fn unlock_smoke_negative() {
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[0]).into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
-		let output = opto::test::object(
+		let output = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[0]).into(),
 			1000u64.to_le_bytes().to_vec(),
@@ -57,12 +54,13 @@ mod tests {
 			outputs: vec![output],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(
 			evaluation,
-			Err(Error::UnlockNotSatisfied(
+			Err(EvalError::UnlockNotSatisfied(
 				&transition.inputs[0],
 				Location::Input
 			))
@@ -71,12 +69,12 @@ mod tests {
 
 	#[test]
 	fn unlock_smoke_positive() {
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
-		let output = opto::test::object(
+		let output = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			1000u64.to_le_bytes().to_vec(),
@@ -88,39 +86,40 @@ mod tests {
 			outputs: vec![output],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}
 
 	#[test]
 	fn policy_smoke_positive() {
-		let input1 = opto::test::object(
+		let input1 = opto_core::test::object(
 			vec![predicate(100, b"const-obj-1")],
 			predicate(100, &[1]).into(),
 			b"const-obj-data-1".to_vec(),
 		);
 
-		let input2 = opto::test::object(
+		let input2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output3 = opto::test::object(
+		let output3 = opto_core::test::object(
 			vec![predicate(100, b"const-obj-1")],
 			predicate(100, &[1]).into(),
 			b"const-obj-data-1".to_vec(),
@@ -132,33 +131,34 @@ mod tests {
 			outputs: vec![output1, output2, output3],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}
 
 	#[test]
 	fn policy_smoke_negative() {
-		let input1 = opto::test::object(
+		let input1 = opto_core::test::object(
 			vec![predicate(100, b"const-obj-1")],
 			predicate(100, &[1]).into(),
 			b"const-obj-data-1".to_vec(),
 		);
 
-		let input2 = opto::test::object(
+		let input2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
@@ -170,12 +170,13 @@ mod tests {
 			outputs: vec![output1, output2],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(
 			evaluation,
-			Err(Error::PolicyNotSatisfied(
+			Err(EvalError::PolicyNotSatisfied(
 				&transition.inputs[0],
 				Location::Input,
 				0

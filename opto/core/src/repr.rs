@@ -1,5 +1,6 @@
 use {
 	crate::{
+		env::Environment,
 		eval::{Context, InUse},
 		expression::Expression,
 		object::Object,
@@ -89,15 +90,17 @@ impl Repr for Expanded {
 /// This representation requires a reference to the expanded representation
 /// during evaluation. This representation is not serializable, clonable,
 /// copiable or comparable.
-pub struct Executable<'a, F>(core::marker::PhantomData<&'a F>)
+pub struct Executable<'a, F, E: Environment + 'a>(
+	core::marker::PhantomData<(&'a F, E)>,
+)
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool;
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool;
 
-impl<'a, F> Repr for Executable<'a, F>
+impl<'a, F, E: Environment> Repr for Executable<'a, F, E>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	type Data = &'a [u8];
 	type InputObject = AsObject<Self>;
-	type Predicate = InUse<'a, F>;
+	type Predicate = InUse<'a, F, E>;
 }

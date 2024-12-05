@@ -1,4 +1,5 @@
 use {
+	opto_core::Digest,
 	runtime::{BalancesConfig, ObjectsConfig, SudoConfig, WASM_BINARY},
 	sc_service::{ChainType, Properties},
 	serde_json::{json, Value},
@@ -63,6 +64,7 @@ fn devnet_genesis() -> Value {
 		"objects": ObjectsConfig {
 			stdpred: include_bytes!("../../../target/opto-stdpred.car").to_vec(),
 			objects: vec![],
+			vrf_seed: Some(Digest::compute(b"opto")),
 			phantom: core::marker::PhantomData
 		},
 		"assets": {

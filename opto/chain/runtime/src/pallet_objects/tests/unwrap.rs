@@ -123,8 +123,12 @@ fn unwrap_object_with_nonce() {
 
 		// check that there was event signalling the consumption of the object
 		System::assert_has_event(
-			pallet_objects::Event::ObjectDestroyed {
-				digest: wrapped_object.digest(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![wrapped_object.digest()],
+					ephemerals: vec![],
+					outputs: vec![],
+				},
 			}
 			.into(),
 		);
@@ -228,8 +232,12 @@ fn unwrap_object_without_nonce() {
 
 		// check that there was event signalling the consumption of the object
 		System::assert_has_event(
-			pallet_objects::Event::ObjectDestroyed {
-				digest: wrapped_object.digest(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![wrapped_object.digest()],
+					ephemerals: vec![],
+					outputs: vec![],
+				},
 			}
 			.into(),
 		);
@@ -268,9 +276,7 @@ fn unwrap_object_invalid_recipient() {
 		.unwrap(),
 	};
 
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
+	after_genesis().execute_with(|| {
 		mint_native_token(
 			&AccountKeyring::Alice.to_account_id(),
 			NATIVE_TOKEN_BALANCE,
@@ -328,39 +334,7 @@ fn wrap_and_unwrap() {
 	const WRAPPED_AMOUNT: u64 = 300000;
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
-	let nonce = blake2_64(
-		&[
-			AccountKeyring::Alice.to_account_id().encode().as_slice(), //
-			0u32.encode().as_slice(),
-		]
-		.concat(),
-	);
-
-	let expected_object = Object {
-		policies: vec![
-			AtRest {
-				id: COIN_PREDICATE,
-				params: ASSET_ID.encode(),
-			},
-			AtRest {
-				id: NONCE_PREDICATE,
-				params: nonce.to_vec(),
-			},
-		],
-		unlock: vec![Op::Predicate(AtRest {
-			id: DEFAULT_SIGNATURE_PREDICATE,
-			params: AccountKeyring::Alice.to_account_id().encode(),
-		})]
-		.try_into()
-		.expect("default unlock expression is invalid"),
-		data: WRAPPED_AMOUNT.encode(),
-	};
-
-	let expected_object_digest = expected_object.digest();
-
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
+	after_genesis().execute_with(|| {
 		// events are not emitted on the genesis block
 		// so here we're setting the block number to 1
 		System::set_block_number(1);
@@ -381,6 +355,38 @@ fn wrap_and_unwrap() {
 			TOTAL_SUPPLY,
 		)
 		.unwrap();
+
+		let object_nonce = blake2_64(
+			&[
+				AccountKeyring::Alice.to_account_id().encode().as_slice(), //
+				System::account_nonce(AccountKeyring::Alice.to_account_id())
+					.encode()
+					.as_slice(),
+			]
+			.concat(),
+		);
+
+		let expected_object = Object {
+			policies: vec![
+				AtRest {
+					id: COIN_PREDICATE,
+					params: ASSET_ID.encode(),
+				},
+				AtRest {
+					id: NONCE_PREDICATE,
+					params: object_nonce.to_vec(),
+				},
+			],
+			unlock: vec![Op::Predicate(AtRest {
+				id: DEFAULT_SIGNATURE_PREDICATE,
+				params: AccountKeyring::Alice.to_account_id().encode(),
+			})]
+			.try_into()
+			.expect("default unlock expression is invalid"),
+			data: WRAPPED_AMOUNT.encode(),
+		};
+
+		let expected_object_digest = expected_object.digest();
 
 		// wrap asset into object using default unlocks
 		pallet_objects::Pallet::<Runtime>::wrap(
@@ -411,8 +417,12 @@ fn wrap_and_unwrap() {
 		assert_eq!(object.object, expected_object);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectCreated {
-				object: expected_object.clone(),
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![],
+					ephemerals: vec![],
+					outputs: vec![expected_object.clone()],
+				},
 			}
 			.into(),
 		);
@@ -437,8 +447,12 @@ fn wrap_and_unwrap() {
 		);
 
 		System::assert_has_event(
-			pallet_objects::Event::<Runtime>::ObjectDestroyed {
-				digest: expected_object_digest,
+			pallet_objects::Event::StateTransitioned {
+				transition: Transition {
+					inputs: vec![expected_object_digest],
+					ephemerals: vec![],
+					outputs: vec![],
+				},
 			}
 			.into(),
 		);

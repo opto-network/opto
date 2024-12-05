@@ -6,7 +6,8 @@ use {
 		PUBLIC_KEY_LENGTH,
 		SIGNATURE_LENGTH,
 	},
-	opto_core::{eval::Context, Transition},
+	opto_core::*,
+	opto_onchain::predicate,
 };
 
 struct Ed25519Verifier;
@@ -40,9 +41,9 @@ impl Verifier for Ed25519Verifier {
 	}
 }
 
-#[opto_onchain::predicate(id = 200, core_crate = opto_core)]
+#[predicate(id = 200, core_crate = opto_core)]
 pub fn ed25519(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	param: &[u8],
 ) -> bool {

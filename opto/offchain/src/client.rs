@@ -7,17 +7,18 @@ use {
 		Event,
 		MutatingClient,
 		ReadOnlyClient,
+		StreamingClient,
 	},
+	futures::Stream,
 	opto_core::{
 		repr::Compact,
 		Digest,
 		Expression,
-		Hashable,
 		Object,
 		PredicateId,
 		Transition,
 	},
-	std::sync::Arc,
+	std::{collections::HashSet, sync::Arc},
 	subxt::{
 		storage::Storage,
 		tx::TxClient,
@@ -26,6 +27,8 @@ use {
 		OnlineClient,
 		SubstrateConfig,
 	},
+	tokio::sync::mpsc::unbounded_channel,
+	tokio_stream::wrappers::UnboundedReceiverStream,
 };
 
 enum At {
@@ -182,8 +185,14 @@ impl MutatingClient for Client {
 		let tx_in_block = tx.wait_for_finalized().await?;
 		for event in tx_in_block.fetch_events().await?.iter() {
 			match event?.as_root_event::<crate::Event>()? {
-				Event::Objects(ObjectsEvent::ObjectCreated { object }) => {
-					return Ok(object);
+				Event::Objects(ObjectsEvent::StateTransitioned { transition }) => {
+					let Some(object) = transition.outputs.first() else {
+						return Err(subxt::Error::Other(format!(
+							"Wrapping asset produced an unexpected state transition: \
+							 {transition:?}",
+						)));
+					};
+					return Ok(object.clone());
 				}
 				Event::System(SystemEvent::ExtrinsicFailed {
 					dispatch_error, ..
@@ -242,26 +251,23 @@ impl MutatingClient for Client {
 		&self,
 		signer: &crate::signer::sr25519::Keypair,
 		transitions: Vec<Transition<Compact>>,
-	) -> Result<(Vec<Digest>, Vec<Digest>), <Self as MutatingClient>::Error> {
+	) -> Result<(), <Self as MutatingClient>::Error> {
 		let tx = self
 			.tx()
 			.sign_and_submit_then_watch_default(
-				&tx().objects().apply(transitions),
+				&tx().objects().apply(transitions.clone()),
 				signer,
 			)
 			.await?;
 
-		let mut created = vec![];
-		let mut destroyed = vec![];
-
+		let mut transitions: HashSet<_> = transitions.into_iter().collect();
 		let tx_in_block = tx.wait_for_finalized().await?;
 		for event in tx_in_block.fetch_events().await?.iter() {
 			match event?.as_root_event::<crate::Event>()? {
-				Event::Objects(ObjectsEvent::ObjectCreated { object }) => {
-					created.push(object.digest());
-				}
-				Event::Objects(ObjectsEvent::ObjectDestroyed { digest }) => {
-					destroyed.push(digest);
+				Event::Objects(ObjectsEvent::StateTransitioned { transition }) => {
+					if transitions.remove(&transition) {
+						continue;
+					}
 				}
 				Event::System(SystemEvent::ExtrinsicSuccess { .. }) => {
 					break;
@@ -278,7 +284,13 @@ impl MutatingClient for Client {
 			}
 		}
 
-		Ok((created, destroyed))
+		if transitions.is_empty() {
+			Ok(())
+		} else {
+			Err(subxt::Error::Other(format!(
+				"Not all transitions succeeded. Failed: {transitions:?}"
+			)))
+		}
 	}
 
 	async fn asset_transfer(
@@ -357,4 +369,40 @@ impl MutatingClient for Client {
 			"Transaction failed without giving a reason".to_string(),
 		))
 	}
+}
+
+impl StreamingClient for Client {
+	type Error = subxt::Error;
+
+	fn transitions(
+		&self,
+	) -> impl Stream<Item = Result<Transition<Compact>, Self::Error>> {
+		let (tx, rx) = unbounded_channel();
+		let client = Arc::clone(&self.client);
+		tokio::spawn(async move {
+			if let Err(e) = recv_loop(client, tx.clone()).await {
+				let _ = tx.send(Err(e));
+			}
+		});
+
+		UnboundedReceiverStream::new(rx)
+	}
+}
+
+async fn recv_loop<E>(
+	client: Arc<OnlineClient<SubstrateConfig>>,
+	tx: tokio::sync::mpsc::UnboundedSender<Result<Transition<Compact>, E>>,
+) -> Result<(), subxt::Error> {
+	let mut subscription = client.blocks().subscribe_finalized().await?;
+	while let Some(Ok(block)) = subscription.next().await {
+		for event in block.events().await?.iter() {
+			match event?.as_root_event::<crate::Event>()? {
+				Event::Objects(ObjectsEvent::StateTransitioned { transition }) => {
+					let _ = tx.send(Ok(transition));
+				}
+				_ => continue,
+			}
+		}
+	}
+	Ok(())
 }

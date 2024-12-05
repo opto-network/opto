@@ -9,6 +9,8 @@
 
 #![cfg_attr(not(test), no_std)]
 
+use opto_core::env::Environment;
+
 extern crate alloc;
 
 #[macro_use]
@@ -16,6 +18,7 @@ mod utils;
 
 pub mod asset;
 pub mod crypto;
+pub mod env;
 pub mod intent;
 pub mod meta;
 pub mod util;
@@ -28,9 +31,9 @@ pub struct PredicateNotFound;
 /// compute nodes. Predicates produced using this factory are more performant,
 /// don't require a WASM virtual machine and use less memory. They are however
 /// not portable.
-pub fn native_impl_factory(
+pub fn native_impl_factory<E: Environment + 'static>(
 	pred: &opto_core::predicate::AtRest,
-) -> Result<opto_core::eval::PredicateFunctor, PredicateNotFound> {
+) -> Result<opto_core::eval::PredicateFunctor<E>, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
 		// util
 		util::ids::constant => util::constant,
@@ -47,6 +50,12 @@ pub fn native_impl_factory(
 		intent::ids::output => intent::output,
 		intent::ids::ephemeral => intent::ephemeral,
 		intent::ids::input => intent::input,
+
+		// env
+		env::ids::before_time => env::before_time,
+		env::ids::before_block => env::before_block,
+		env::ids::after_time => env::after_time,
+		env::ids::after_block => env::after_block,
 
 		// meta
 		meta::ids::ipfs => meta::ipfs,

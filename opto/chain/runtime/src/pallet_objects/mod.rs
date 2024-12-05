@@ -1,5 +1,6 @@
 pub use pallet::*;
 use {
+	core::time::Duration,
 	frame::derive::TypeInfo,
 	opto_core::*,
 	scale::{Decode, Encode},
@@ -25,7 +26,7 @@ pub struct StoredObject {
 #[frame::pallet]
 pub mod pallet {
 	use {
-		super::{config::*, *},
+		super::*,
 		core::marker::PhantomData,
 		frame::prelude::{
 			frame_system,
@@ -42,7 +43,7 @@ pub mod pallet {
 	#[cfg(not(feature = "std"))]
 	use alloc::{vec, vec::Vec};
 
-	use repr::Compact;
+	use {config::WeightInfo, frame::prelude::OptionQuery, repr::Compact};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
@@ -61,6 +62,9 @@ pub mod pallet {
 		/// The initial objects that are created in the genesis block.
 		pub objects: Vec<Object>,
 
+		/// The initial VRF value of the genesis block.
+		pub vrf_seed: Option<Digest>,
+
 		#[serde(skip)]
 		pub phantom: PhantomData<(T, I)>,
 	}
@@ -74,7 +78,7 @@ pub mod pallet {
 
 	#[pallet::config(with_default)]
 	pub trait Config<I: 'static = ()>:
-		frame_system::Config + pallet_assets::Config<I>
+		frame_system::Config + pallet_assets::Config<I> + pallet_timestamp::Config
 	{
 		#[pallet::no_default_bounds]
 		type RuntimeEvent: From<Event<Self, I>>
@@ -87,6 +91,12 @@ pub mod pallet {
 
 		/// The maximum number of bytes an object can have in its encoded form.
 		type MaximumObjectSize: Get<u32>;
+
+		/// The maximum number of policies that an object can have.
+		type MaximumObjectPolicies: Get<u8>;
+
+		/// How many historical VRF values to keep in the chain state.
+		type HistoryLength: Get<u32>;
 
 		/// The account that holds assets wrapped into objects
 		#[pallet::no_default]
@@ -108,10 +118,9 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		ObjectCreated { object: Object<AtRest, Vec<u8>> },
-		ObjectDestroyed { digest: Digest },
 		StateTransitioned { transition: Transition<Compact> },
 		PredicateInstalled { id: PredicateId },
+		VrfUpdated { vrf: Digest },
 	}
 
 	#[pallet::pallet]
@@ -129,11 +138,28 @@ pub mod pallet {
 	pub type Predicates<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, PredicateId, Vec<u8>, OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn vrf)]
+	pub type Vrf<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, u32, Digest, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn timestamp)]
+	pub type Timestamp<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, u32, Duration, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
 		/// The object is too large.
 		/// Must be less than `MaximumObjectSize`.
+		///
+		/// See Config::MaximumObjectSize.
 		ObjectTooLarge,
+
+		/// The object has more policies attached to it than the max allowed.
+		///
+		/// See Config::MaximumObjectPolicies.
+		TooManyPolicies,
 
 		/// Predicate code is too large.
 		/// Must be less than `MaximumPredicateSize`.
@@ -172,7 +198,7 @@ pub mod pallet {
 
 		/// One or more of the policy predicates attached to objects involved in
 		/// the transition are not satisfied.
-		UnsatifiedPolicy,
+		UnsatifiedPolicy(u8),
 	}
 
 	/// The pallet's dispatchable extrinisicts.
@@ -201,9 +227,20 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		pub fn apply(
 			origin: OriginFor<T>,
-			transitions: Vec<Transition<repr::Compact>>,
+			transitions: Vec<Transition<Compact>>,
 		) -> DispatchResult {
 			dispatch::apply::<T, I>(origin, transitions)
+		}
+	}
+
+	#[pallet::hooks]
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+		/// For each new block, update the VRF value before running any state
+		/// transitions. Todo: implement a better way to update the VRF value.
+		///
+		/// For each new block, update the history of blocks timestamps.
+		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
+			dispatch::vrf_update::<T, I>(n) + dispatch::timestamp_update::<T, I>(n)
 		}
 	}
 }

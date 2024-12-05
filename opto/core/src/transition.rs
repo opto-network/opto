@@ -2,6 +2,7 @@ use {
 	crate::{
 		alloc::vec::Vec,
 		digest::DigestBuilder,
+		env::Environment,
 		eval::{Context, InUse},
 		repr::{AsInput, AsObject, Compact, Executable, Expanded, Repr},
 		AtRest,
@@ -83,6 +84,28 @@ where
 	}
 }
 
+impl<R: Repr> Eq for Transition<R>
+where
+	R::InputObject: Eq,
+	R::Predicate: Eq,
+	R::Data: Eq,
+{
+}
+
+impl<R: Repr> core::hash::Hash for Transition<R>
+where
+	R::InputObject: core::hash::Hash,
+	R::Predicate: core::hash::Hash,
+	R::Data: core::hash::Hash,
+	Object<<R as Repr>::Predicate, <R as Repr>::Data>: core::hash::Hash,
+{
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+		self.inputs.hash(state);
+		self.ephemerals.hash(state);
+		self.outputs.hash(state);
+	}
+}
+
 impl<R: Repr> Debug for Transition<R>
 where
 	R::InputObject: Debug,
@@ -97,8 +120,6 @@ where
 			.finish()
 	}
 }
-
-impl Eq for Transition<Expanded> {}
 
 impl<P: Repr + Clone> Clone for Transition<P>
 where
@@ -140,13 +161,13 @@ impl Transition<Expanded> {
 	/// create executable versions of the at-rest predicates this function will
 	/// create an executable version of the transition that can be invoked and
 	/// evaluated at runtime.
-	pub fn instantiate<'a, B, F, E>(
+	pub fn instantiate<'a, B, F, E, Env: Environment + 'a>(
 		&'a self,
 		builder: B,
-	) -> Result<Transition<Executable<'a, F>>, E>
+	) -> Result<Transition<Executable<'a, F, Env>>, E>
 	where
 		B: Fn(&'a AtRest) -> Result<F, E> + 'a,
-		F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+		F: FnOnce(Context<'a, Env>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 	{
 		Ok(Transition {
 			inputs: self

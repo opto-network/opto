@@ -1,8 +1,7 @@
 use {
 	super::*,
 	frame::prelude::*,
-	repr::{Compact, Expanded},
-	vm::PredicateMachine,
+	vm::{instantiate, OnChainEnvironment},
 };
 
 pub fn apply<T: Config<I>, I: 'static>(
@@ -11,26 +10,12 @@ pub fn apply<T: Config<I>, I: 'static>(
 ) -> DispatchResult {
 	let _ = ensure_signed(origin)?;
 
-	let mut consumed = collections::BTreeMap::new();
-	let mut produced = collections::BTreeMap::new();
+	let env = OnChainEnvironment::<T, I>::new();
 
 	for transition in transitions {
-		// keep track of all consumed and produced objects
-		// we want to emit events for them all at the end, except transient objects
-		// that were produced and consumed in the same transition.
-		for input in &transition.inputs {
-			*consumed.entry(*input).or_insert(0) += 1;
-			*produced.entry(*input).or_insert(0) -= 1;
-		}
-
-		for output in &transition.outputs {
-			let output = output.digest();
-			*produced.entry(output).or_insert(0) += 1;
-			*consumed.entry(output).or_insert(0) -= 1;
-		}
-
-		// at-rest version of the transition. This is where all the data, parameters
-		// and other non-executable pieces of the transition are stored.
+		// at-rest expanded version of the transition. This is where all the data,
+		// parameters and other non-executable pieces of the transition are
+		// stored. This will also consume all input objects from state.
 		let expanded = expand::<T, I>(transition.clone())?;
 
 		// an executable version of the predicate that has runnable predicate code
@@ -42,58 +27,29 @@ pub fn apply<T: Config<I>, I: 'static>(
 
 			// create an executable version that can be evaluated
 			// Safety: Predicate was validated when it was installed.
-			let instance = unsafe {
-				PredicateMachine::new_unchecked(bytecode.as_slice(), pred.id)
-					.expect("predicate was validated when installed")
-			};
-			Ok::<_, Error<T, I>>(instance.functor())
+			Ok::<_, Error<T, I>>(unsafe { instantiate(bytecode.as_slice(), pred.id) })
 		})?;
 
 		// Evaluate the transition. If this does not return any error, the
 		// transition is valid, and we can proceed with state changes.
-		instantiated.evaluate(&expanded).map_err(|e| match e {
-			opto_core::eval::Error::PolicyNotSatisfied(_, _, _) => {
-				Error::<T, I>::UnsatifiedPolicy
-			}
-			opto_core::eval::Error::UnlockNotSatisfied(_, _) => {
-				Error::<T, I>::UnsatifiedUnlockExpression
-			}
-			_ => unreachable!(),
-		})?;
+		instantiated
+			.evaluate(&expanded, &env)
+			.map_err(|e| match e {
+				opto_core::eval::Error::PolicyNotSatisfied(_, _, pos) => {
+					Error::<T, I>::UnsatifiedPolicy(pos as u8)
+				}
+				opto_core::eval::Error::UnlockNotSatisfied(_, _) => {
+					Error::<T, I>::UnsatifiedUnlockExpression
+				}
+				_ => unreachable!(),
+			})?;
 
 		// all good, now persist all output objects
 		for output in expanded.outputs {
-			produce_output::<T, I>(output, false)?;
+			produce_output::<T, I>(output)?;
 		}
 
 		Pallet::<T, I>::deposit_event(Event::StateTransitioned { transition });
-	}
-
-	// now emit events for all consumed and produced objects
-	// skip objects that were produced and consumed in the same transition
-	for (digest, balance) in consumed {
-		if balance <= 0 {
-			continue;
-		}
-
-		for _ in 0..balance {
-			Pallet::<T, I>::deposit_event(Event::ObjectDestroyed { digest });
-		}
-	}
-
-	for (digest, balance) in produced {
-		if balance <= 0 {
-			continue;
-		}
-
-		let object = Objects::<T, I>::get(digest) // must exist
-			.expect("just produced object must exist");
-
-		for _ in 0..balance {
-			Pallet::<T, I>::deposit_event(Event::ObjectCreated {
-				object: object.object.clone(),
-			});
-		}
 	}
 
 	Ok(())
@@ -106,7 +62,7 @@ fn expand<T: Config<I>, I: 'static>(
 		inputs: transition
 			.inputs
 			.into_iter()
-			.map(|digest| consume_input::<T, I>(digest, false))
+			.map(|digest| consume_input::<T, I>(digest))
 			.collect::<Result<_, _>>()?,
 		ephemerals: transition.ephemerals,
 		outputs: transition.outputs,

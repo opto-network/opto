@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
-use {super::*, frame::prelude::*, vm::PredicateMachine};
+use {super::*, frame::prelude::*};
 
 pub fn install<T: Config<I>, I: 'static>(
 	origin: OriginFor<T>,
@@ -16,7 +16,7 @@ pub fn install<T: Config<I>, I: 'static>(
 	);
 
 	// ensure that the bytecode is valid wasm and adheres to public ABI.
-	let predicate_id = PredicateMachine::validate(&bytecode)
+	let predicate_id = vm::validate(&bytecode)
 		.map_err(|e| Error::<T, I>::InvalidPredicateCode(e))?;
 
 	// ensure that the predicate id is not already taken

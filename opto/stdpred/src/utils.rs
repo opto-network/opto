@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use opto_core::eval::{Context, Location, Role};
+use opto_core::*;
 
 #[macro_export]
 macro_rules! ensure {
@@ -11,27 +11,29 @@ macro_rules! ensure {
 	};
 }
 
-pub fn is_unlock(ctx: &Context) -> bool {
+pub fn is_unlock(ctx: &Context<'_, impl Environment>) -> bool {
 	matches!(ctx.role, Role::Unlock(_, _))
 }
 
-pub fn is_policy(ctx: &Context) -> bool {
+pub fn is_policy(ctx: &Context<'_, impl Environment>) -> bool {
 	matches!(ctx.role, Role::Policy(_, _))
 }
 
-pub fn is_input(ctx: &Context) -> bool {
+pub fn is_input(ctx: &Context<'_, impl Environment>) -> bool {
 	matches!(ctx.location, Location::Input)
 }
 
-pub fn is_output(ctx: &Context) -> bool {
+pub fn is_output(ctx: &Context<'_, impl Environment>) -> bool {
 	matches!(ctx.location, Location::Output)
 }
 
-pub fn is_ephemeral(ctx: &Context) -> bool {
+pub fn is_ephemeral(ctx: &Context<'_, impl Environment>) -> bool {
 	matches!(ctx.location, Location::Ephemeral)
 }
 
-pub fn is_only_policy_of_this_type(ctx: &Context) -> bool {
+pub fn is_only_policy_of_this_type(
+	ctx: &Context<'_, impl Environment>,
+) -> bool {
 	ctx
 		.object
 		.policies

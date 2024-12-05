@@ -4,13 +4,8 @@ use {
 	ark_bn254::{Bn254, Fr},
 	ark_groth16::{Groth16, Proof},
 	ark_serialize::CanonicalDeserialize,
-	opto_core::{
-		eval::{Context, Role},
-		predicate::AtRest,
-		Digest,
-		Hashable,
-		Transition,
-	},
+	opto_core::{eval::Role, *},
+	opto_onchain::predicate,
 	scale::{Decode, Encode},
 };
 
@@ -26,9 +21,9 @@ pub struct Challenge {
 	pub public_inputs: Vec<u8>,
 }
 
-#[opto_onchain::predicate(id = 203, core_crate = opto_core)]
+#[predicate(id = 203, core_crate = opto_core)]
 pub fn groth16_bn254(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	params: &[u8],
 ) -> bool {
@@ -137,14 +132,9 @@ pub mod test {
 	use {
 		super::*,
 		crate::native_impl_factory,
+		env::StaticEnvironment,
 		hex_literal::hex,
-		opto_core::{
-			eval::Location,
-			test::*,
-			transition::Error,
-			Object,
-			PredicateId,
-		},
+		opto_core::test::*,
 		scale::Encode,
 	};
 
@@ -209,25 +199,25 @@ pub mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(203, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			FIB20_PROOF.to_vec(),
@@ -239,8 +229,9 @@ pub mod test {
 			outputs: vec![output1, output2],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}
@@ -275,25 +266,25 @@ pub mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(203, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			FIB17_PROOF.to_vec(),
@@ -305,8 +296,9 @@ pub mod test {
 			outputs: vec![output1, output2],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}
@@ -327,25 +319,25 @@ pub mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(203, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			// invalid proof
@@ -358,12 +350,13 @@ pub mod test {
 			outputs: vec![output1, output2],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(
 			evaluation,
-			Err(Error::UnlockNotSatisfied(&input, Location::Input))
+			Err(EvalError::UnlockNotSatisfied(&input, Location::Input))
 		);
 	}
 
@@ -391,25 +384,25 @@ pub mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input1 = opto::test::object(
+		let input1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(203, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			FIB20_PROOF.to_vec(),
@@ -421,8 +414,9 @@ pub mod test {
 			outputs: vec![output1, output2, circuit_vk_object],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}
@@ -451,25 +445,25 @@ pub mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input1 = opto::test::object(
+		let input1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(203, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			FIB20_PROOF.to_vec(),
@@ -481,8 +475,9 @@ pub mod test {
 			outputs: vec![output1, output2],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}

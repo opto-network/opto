@@ -5,6 +5,7 @@ use {
 	alloc::{string::String, vec::Vec},
 	core::{
 		fmt::{Debug, Display},
+		hash::Hash,
 		ops::Not,
 	},
 	scale::{Decode, Encode, EncodeLike, Output},
@@ -39,6 +40,20 @@ pub enum Op<P> {
 	And,
 	Or,
 	Not,
+}
+
+impl<P: Hash> Hash for Op<P> {
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+		match self {
+			Self::Predicate(p) => {
+				state.write_u8(0);
+				p.hash(state);
+			}
+			Self::And => state.write_u8(1),
+			Self::Or => state.write_u8(2),
+			Self::Not => state.write_u8(3),
+		}
+	}
 }
 
 impl<P: Encode> Encode for Op<P> {
@@ -188,6 +203,12 @@ pub struct Expression<P = AtRest>(pub(crate) Vec<Op<P>>);
 impl<P: PartialEq> PartialEq for Expression<P> {
 	fn eq(&self, other: &Self) -> bool {
 		self.0 == other.0
+	}
+}
+
+impl<P: Hash> Hash for Expression<P> {
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+		self.0.hash(state)
 	}
 }
 

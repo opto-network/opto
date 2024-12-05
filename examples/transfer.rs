@@ -76,16 +76,12 @@ async fn main() -> anyhow::Result<()> {
 	};
 
 	transition.set_nonces();
-	transition.sign_sr25519(&alice);
+	transition.sign_with_sr25519(&alice);
 
 	let output_digest = transition.outputs[0].digest();
 
 	println!("Transition: {:?}", transition);
-	let (created, destroyed) = client.apply(&charlie, vec![transition]).await?;
-
-	println!("objects created: {created:?}");
-	println!("objects destroyed: {destroyed:?}");
-	assert_eq!(created, vec![output_digest]);
+	client.apply(&charlie, vec![transition]).await?;
 
 	client.unwrap(&charlie, &output_digest).await?;
 

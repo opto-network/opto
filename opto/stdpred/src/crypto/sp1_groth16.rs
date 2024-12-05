@@ -13,13 +13,8 @@ use {
 	cid::Cid,
 	core::array::TryFromSliceError,
 	num_bigint::BigUint,
-	opto_core::{
-		eval::{Context, Role},
-		predicate::AtRest,
-		Hashable,
-		PredicateId,
-		Transition,
-	},
+	opto_core::*,
+	opto_onchain::predicate,
 	scale::{Decode, Encode},
 	sha2::{Digest, Sha256},
 };
@@ -31,9 +26,9 @@ pub struct Sp1Groth16Challenge {
 	pub code_cid: Option<Cid>,
 }
 
-#[opto_onchain::predicate(id = 204, core_crate = opto_core)]
+#[predicate(id = 204, core_crate = opto_core)]
 pub fn sp1_groth16(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	params: &[u8],
 ) -> bool {
@@ -123,7 +118,7 @@ pub fn sp1_groth16(
 }
 
 fn find_challenge_response<'a>(
-	ctx: &Context<'_>,
+	ctx: &Context<'_, impl Environment>,
 	transition: &'a Transition,
 	challenge_predicate: &AtRest,
 ) -> Option<&'a [u8]> {
@@ -385,7 +380,7 @@ mod test {
 			native_impl_factory,
 		},
 		hex_literal::hex,
-		opto_core::{test::predicate, Object},
+		opto_core::test::*,
 	};
 
 	#[test]
@@ -415,25 +410,25 @@ mod test {
 
 		let challenge_digest = challenge_pred.digest();
 
-		let input = opto::test::object(
+		let input = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			challenge_pred.into(),
 			1000u64.to_le_bytes().to_vec(),
 		);
 
-		let output1 = opto::test::object(
+		let output1 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let output2 = opto::test::object(
+		let output2 = opto_core::test::object(
 			vec![predicate(1000, b"USDT")],
 			predicate(100, &[1]).into(),
 			500u64.to_le_bytes().to_vec(),
 		);
 
-		let ephemeral = opto::test::object(
+		let ephemeral = opto_core::test::object(
 			vec![predicate(204, challenge_digest.as_slice())],
 			predicate(100, &[1]).into(),
 			sp1_proof.to_vec(),
@@ -445,8 +440,9 @@ mod test {
 			outputs: vec![output1, output2, sp1_v3_vk_obj],
 		};
 
+		let env = StaticEnvironment::default();
 		let instance = transition.instantiate(native_impl_factory).unwrap();
-		let evaluation = instance.evaluate(&transition);
+		let evaluation = instance.evaluate(&transition, &env);
 
 		assert_eq!(evaluation, Ok(()));
 	}

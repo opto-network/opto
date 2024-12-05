@@ -1,8 +1,11 @@
 use {
 	super::Expression,
-	crate::predicate::AtRest,
+	crate::AtRest,
 	alloc::{format, vec::Vec},
-	core::fmt::{Debug, Formatter},
+	core::{
+		fmt::{Debug, Formatter},
+		hash::Hash,
+	},
 	scale::{self, Decode, Encode, EncodeLike},
 	scale_info::TypeInfo,
 };
@@ -34,7 +37,15 @@ impl<P: Clone, D: Clone> Clone for Object<P, D> {
 	}
 }
 
-impl<P: Debug, D: AsRef<[u8]> + Debug> Debug for Object<P, D> {
+impl<P: Hash, D: Hash> Hash for Object<P, D> {
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+		self.policies.hash(state);
+		self.unlock.hash(state);
+		self.data.hash(state);
+	}
+}
+
+impl<P: Debug, D: AsRef<[u8]>> Debug for Object<P, D> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Object")
 			.field("policies", &self.policies)

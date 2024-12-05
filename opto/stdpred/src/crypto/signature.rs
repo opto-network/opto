@@ -1,9 +1,6 @@
 use {
 	crate::{ensure, utils::is_ephemeral},
-	opto_core::{
-		eval::{Context, Role},
-		Transition,
-	},
+	opto_core::{eval::Role, *},
 };
 
 pub trait Verifier {
@@ -34,7 +31,7 @@ pub trait Verifier {
 /// this template plus an extra paramters that has a function that can verify
 /// the signature.
 pub fn signature_verification<V: Verifier>(
-	ctx: Context<'_>,
+	ctx: Context<'_, impl Environment>,
 	transition: &Transition,
 	param: &[u8],
 	verifier: V,

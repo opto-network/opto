@@ -7,11 +7,17 @@ use {
 		pallet_objects::{self, tests::NONCE_PREDICATE},
 		*,
 	},
-	frame::{testing_prelude::*, traits::fungible::Mutate},
+	frame::{
+		testing_prelude::*,
+		traits::{fungible::Mutate, fungibles::Inspect},
+	},
+	interface::{AssetId, Balance},
 	opto_core::{AtRest, Hashable, Object, PredicateId, Transition},
 	repr::{Compact, Expanded},
+	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 	sp_runtime::MultiAddress,
+	std::vec,
 };
 
 pub fn mint_native_token(
@@ -94,16 +100,97 @@ pub fn install_test_predicates() -> DispatchResult {
 	Ok(())
 }
 
+/// Creates a coin object with the given amount using default unlock predicates.
+pub fn create_asset_object(
+	amount: Balance,
+	asset_id: AssetId,
+	owner: AccountId,
+) -> Result<Object, DispatchError> {
+	// check if the asset exists
+	if !pallet_assets::Pallet::<Runtime>::asset_exists(asset_id) {
+		create_asset(asset_id, owner.clone(), true)?;
+	}
+
+	if pallet_assets::Pallet::<Runtime>::balance(asset_id, &owner) < amount {
+		mint_asset(asset_id, owner.clone(), owner.clone(), amount)?;
+	}
+
+	let nonce = blake2_64(
+		&[
+			owner.encode().as_slice(),
+			System::account_nonce(&owner).encode().as_slice(),
+		]
+		.concat(),
+	);
+
+	pallet_objects::Pallet::<Runtime>::wrap(
+		RuntimeOrigin::signed(owner.clone()),
+		asset_id,
+		amount,
+		None,
+	)?;
+
+	let expected_object = Object {
+		policies: vec![
+			AtRest {
+				id: COIN_PREDICATE,
+				params: asset_id.encode(),
+			},
+			AtRest {
+				id: NONCE_PREDICATE,
+				params: nonce.to_vec(),
+			},
+		],
+		unlock: AtRest {
+			id: DEFAULT_SIGNATURE_PREDICATE,
+			params: owner.encode(),
+		}
+		.into(),
+		data: amount.encode(),
+	};
+
+	let expected_hash = expected_object.digest();
+	let object = pallet_objects::Pallet::<Runtime>::object(expected_hash)
+		.ok_or_else(|| DispatchError::from("wrapped asset object not found"))?;
+
+	assert!(object.instance_count > 0);
+
+	System::assert_has_event(
+		pallet_objects::Event::StateTransitioned {
+			transition: Transition {
+				inputs: vec![],
+				ephemerals: vec![],
+				outputs: vec![expected_object.clone()],
+			},
+		}
+		.into(),
+	);
+
+	Ok(expected_object)
+}
+
+pub fn next_block() {
+	run_to_block(System::block_number() + 1);
+}
+
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
 		if System::block_number() > 0 {
 			pallet_objects::Pallet::<Runtime>::on_finalize(System::block_number());
 			System::on_finalize(System::block_number());
+			pallet_timestamp::Pallet::<Runtime>::on_finalize(System::block_number());
+			pallet_objects::Pallet::<Runtime>::on_finalize(System::block_number());
 		}
 
 		System::reset_events();
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
+
+		// in tests each block is 6 seconds (6000 milliseconds)
+		pallet_timestamp::Pallet::<Runtime>::set_timestamp(
+			(System::block_number() * 6_000) as u64,
+		);
+
 		pallet_objects::Pallet::<Runtime>::on_initialize(System::block_number());
 	}
 }

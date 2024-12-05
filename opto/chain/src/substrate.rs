@@ -63,11 +63,8 @@ pub async fn start_chain(
 					for event in events_vec {
 						if let runtime::RuntimeEvent::Objects(event) = event.event {
 							match event {
-								pallet_objects::Event::ObjectCreated { object } => {
-									let _ = events_tx.send(Event::ObjectCreated(object));
-								}
-								pallet_objects::Event::ObjectDestroyed { digest } => {
-									let _ = events_tx.send(Event::ObjectDestroyed(digest));
+								pallet_objects::Event::StateTransitioned { transition } => {
+									let _ = events_tx.send(Event::StateTransitioned(transition));
 								}
 								pallet_objects::Event::PredicateInstalled { id } => {
 									let _ = events_tx.send(Event::PredicateInstalled(id));

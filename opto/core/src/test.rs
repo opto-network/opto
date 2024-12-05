@@ -8,7 +8,10 @@ use {
 	alloc::{collections::BTreeMap, vec::Vec},
 };
 
-pub type PredicateFn = fn(Context<'_>, &Transition<Expanded>, &[u8]) -> bool;
+pub use crate::env::StaticEnvironment;
+
+pub type PredicateFn =
+	fn(Context<'_, StaticEnvironment>, &Transition<Expanded>, &[u8]) -> bool;
 
 #[derive(Default)]
 pub struct MockMachine {
@@ -34,7 +37,11 @@ impl MockMachine {
 		&'a AtRest,
 	) -> Result<
 		alloc::boxed::Box<
-			dyn FnOnce(Context, &Transition<Expanded>, &[u8]) -> bool,
+			dyn FnOnce(
+				Context<'_, StaticEnvironment>,
+				&Transition<Expanded>,
+				&[u8],
+			) -> bool,
 		>,
 		(),
 	> {
@@ -42,7 +49,7 @@ impl MockMachine {
 			let predicate = self.predicates.get(&predicate.id).cloned().ok_or(())?;
 
 			Ok(alloc::boxed::Box::new(
-				move |context: Context<'_>,
+				move |context: Context<'_, StaticEnvironment>,
 				      transition: &Transition<Expanded>,
 				      params: &[u8]| { predicate(context, transition, params) },
 			))

@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod config;
+mod debug;
 pub mod pallet_objects;
 
 #[cfg(feature = "std")]

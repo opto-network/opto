@@ -1,6 +1,7 @@
 use {
 	super::{Object, Transition},
 	crate::{
+		env::Environment,
 		expression,
 		repr::{AsExpression, AsObject, AsPredicate, Executable, Expanded, Repr},
 		AtRest,
@@ -51,21 +52,21 @@ impl From<expression::Error> for Error<'_> {
 /// compared and do not have a universal representation across all machines.
 /// They are tied to the machine that instantiated them and are only valid in
 /// the context of that machine.
-pub struct InUse<'a, F>
+pub struct InUse<'a, F, E: Environment + 'a>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	eval: F,
-	_p: core::marker::PhantomData<&'a F>,
+	_p: core::marker::PhantomData<(&'a F, E)>,
 }
 
-impl<'a, F> InUse<'a, F>
+impl<'a, F, E: Environment> InUse<'a, F, E>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	pub fn eval(
 		self,
-		context: Context<'a>,
+		context: Context<'a, E>,
 		transition: &'a Transition<Expanded>,
 		params: &'a [u8],
 	) -> bool {
@@ -76,12 +77,13 @@ where
 /// A functor that can be used to evaluate a predicate in the context of a
 /// state. This is a boxed version of the function that abstracts the underlying
 /// callable type.
-pub type PredicateFunctor =
-	alloc::boxed::Box<dyn FnOnce(Context, &Transition<Expanded>, &[u8]) -> bool>;
+pub type PredicateFunctor<E> = alloc::boxed::Box<
+	dyn FnOnce(Context<E>, &Transition<Expanded>, &[u8]) -> bool,
+>;
 
-impl<'a, F> InUse<'a, F>
+impl<'a, F, E: Environment + 'a> InUse<'a, F, E>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	pub fn new(eval: F) -> Self {
 		Self {
@@ -94,14 +96,15 @@ where
 /// Identifies the exact predicate that is being evaluated in the context of a
 /// state transition.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Context<'a> {
+pub struct Context<'a, E: Environment> {
 	pub location: Location,
 	pub role: Role<'a, <Expanded as Repr>::Predicate>,
 	pub object:
 		&'a Object<<Expanded as Repr>::Predicate, <Expanded as Repr>::Data>,
+	pub env: &'a E,
 }
 
-impl<'a> Context<'a> {
+impl<'a, E: Environment> Context<'a, E> {
 	/// Index of the object that contains the predicate being evaluated in the
 	/// state transition objects list.
 	///
@@ -192,14 +195,15 @@ impl<'a, P> Role<'a, P> {
 /// The `'m` lifetime is the lifetime of the Machine that is evaluating the
 /// transition. The `'d` lifetime is the lifetime of the transition Data that is
 /// being evaluated.
-impl<'a, F> Transition<Executable<'a, F>>
+impl<'a, F, E: Environment + 'a> Transition<Executable<'a, F, E>>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	/// Evaluates the transition in the context of a state transition.
 	pub fn evaluate(
 		self,
 		source: &'a Transition<Expanded>,
+		env: &'a E,
 	) -> Result<(), Error<'a>> {
 		// Check that the transition has the same shape as the source transition.
 		if self.inputs.len() != source.inputs.len()
@@ -212,14 +216,14 @@ where
 		// Check that all input objects have their predicates satisfied.
 		for (instance, object) in self.inputs.into_iter().zip(source.inputs.iter())
 		{
-			eval_object(object, Location::Input, instance, source)?;
+			eval_object(object, Location::Input, instance, source, env)?;
 		}
 
 		// Check that all ephemeral objects have their predicates satisfied.
 		for (instance, object) in
 			self.ephemerals.into_iter().zip(source.ephemerals.iter())
 		{
-			eval_object(object, Location::Ephemeral, instance, source)?;
+			eval_object(object, Location::Ephemeral, instance, source, env)?;
 		}
 
 		// Check that all output objects have their predicates satisfied. For output
@@ -227,7 +231,7 @@ where
 		for (instance, object) in
 			self.outputs.into_iter().zip(source.outputs.iter())
 		{
-			eval_policies(source, object, instance, Location::Output)?;
+			eval_policies(source, object, instance, Location::Output, env)?;
 		}
 
 		// all checks passed, transition is valid
@@ -235,14 +239,15 @@ where
 	}
 }
 
-fn eval_unlocks<'a, F>(
+fn eval_unlocks<'a, F, E: Environment>(
 	source: &'a Transition<Expanded>,
 	object: &'a AsObject<Expanded>,
-	expression: AsExpression<Executable<'a, F>>,
+	expression: AsExpression<Executable<'a, F, E>>,
 	location: Location,
+	env: &'a E,
 ) -> Result<(), Error<'a>>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	let mut object_ops = object.unlock.as_ops().iter().rev();
 	let mut instance_ops = expression.to_vec();
@@ -264,6 +269,7 @@ where
 						Role::Unlock(pred, index),
 						object,
 						source,
+						env,
 					)
 				}));
 			}
@@ -331,14 +337,15 @@ where
 	}
 }
 
-fn eval_object<'a, F>(
+fn eval_object<'a, F, E: Environment>(
 	object: &'a AsObject<Expanded>,
 	location: Location,
-	instance: AsObject<Executable<'a, F>>,
+	instance: AsObject<Executable<'a, F, E>>,
 	transition: &'a Transition<Expanded>,
+	env: &'a E,
 ) -> Result<(), Error<'a>>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	for (j, (instance, policy)) in instance
 		.policies
@@ -347,12 +354,14 @@ where
 		.enumerate()
 	{
 		let role = Role::Policy(policy, j);
-		if !eval_predicate(policy, instance, location, role, object, transition) {
+		if !eval_predicate(
+			policy, instance, location, role, object, transition, env,
+		) {
 			return Err(Error::PolicyNotSatisfied(object, location, j));
 		}
 	}
 
-	eval_unlocks(transition, object, instance.unlock, location)
+	eval_unlocks(transition, object, instance.unlock, location, env)
 }
 
 /// Checks wheter the policies of an object are satisfied.
@@ -361,14 +370,15 @@ where
 /// contains the policy predicate, the instantiated object that has an
 /// executable instance of the predicate and the location where the object is
 /// located.
-fn eval_policies<'a, F>(
+fn eval_policies<'a, F, E: Environment>(
 	transition: &'a Transition<Expanded>,
 	object: &'a AsObject<Expanded>,
-	instance: AsObject<Executable<'a, F>>,
+	instance: AsObject<Executable<'a, F, E>>,
 	location: Location,
+	env: &'a E,
 ) -> Result<(), Error<'a>>
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	for (j, (instance, policy)) in instance
 		.policies
@@ -377,7 +387,9 @@ where
 		.enumerate()
 	{
 		let role = Role::Policy(policy, j);
-		if !eval_predicate(policy, instance, location, role, object, transition) {
+		if !eval_predicate(
+			policy, instance, location, role, object, transition, env,
+		) {
 			return Err(Error::PolicyNotSatisfied(object, location, j));
 		}
 	}
@@ -385,22 +397,24 @@ where
 	Ok(())
 }
 
-fn eval_predicate<'a, F>(
+fn eval_predicate<'a, F, E: Environment>(
 	predicate: &'a AtRest,
-	instance: InUse<'a, F>,
+	instance: InUse<'a, F, E>,
 	location: Location,
 	role: Role<'a, AsPredicate<Expanded>>,
 	object: &'a AsObject<Expanded>,
 	transition: &'a Transition<Expanded>,
+	env: &'a E,
 ) -> bool
 where
-	F: FnOnce(Context<'a>, &'a Transition<Expanded>, &'a [u8]) -> bool,
+	F: FnOnce(Context<'a, E>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 {
 	instance.eval(
 		Context {
 			location,
 			role,
 			object,
+			env,
 		},
 		transition,
 		&predicate.params,
