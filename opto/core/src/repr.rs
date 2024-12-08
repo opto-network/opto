@@ -4,7 +4,7 @@ use {
 		eval::{Context, InUse},
 		expression::Expression,
 		object::Object,
-		AtRest,
+		Predicate,
 		Digest,
 		Transition,
 	},
@@ -64,7 +64,7 @@ pub struct Compact;
 impl Repr for Compact {
 	type Data = Vec<u8>;
 	type InputObject = Digest;
-	type Predicate = AtRest;
+	type Predicate = Predicate;
 }
 
 /// This is a representation of a state transition where all input objects
@@ -79,7 +79,7 @@ pub struct Expanded;
 impl Repr for Expanded {
 	type Data = Vec<u8>;
 	type InputObject = AsObject<Self>;
-	type Predicate = AtRest;
+	type Predicate = Predicate;
 }
 
 /// This is a representation of a state transition where all input objects

@@ -1,6 +1,5 @@
 pub use pallet::*;
 use {
-	core::time::Duration,
 	frame::derive::TypeInfo,
 	opto_core::*,
 	scale::{Decode, Encode},
@@ -20,7 +19,7 @@ pub struct StoredObject {
 	/// Each time an object is consumed, this value is decremented by 1.
 	/// When the value reaches 0, the object is removed from the storage.
 	pub instance_count: u32,
-	pub object: Object<AtRest, Vec<u8>>,
+	pub object: Object<Predicate, Vec<u8>>,
 }
 
 #[frame::pallet]
@@ -146,7 +145,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn timestamp)]
 	pub type Timestamp<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, u32, Duration, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, u32, u64, OptionQuery>;
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
@@ -214,7 +213,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
 			amount: T::Balance,
-			unlock: Option<Expression<AtRest>>,
+			unlock: Option<Expression<Predicate>>,
 		) -> DispatchResult {
 			dispatch::wrap::<T, I>(origin, asset_id, amount, unlock)
 		}

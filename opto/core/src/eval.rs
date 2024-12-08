@@ -4,8 +4,8 @@ use {
 		env::Environment,
 		expression,
 		repr::{AsExpression, AsObject, AsPredicate, Executable, Expanded, Repr},
-		AtRest,
 		Op,
+		Predicate,
 		PredicateId,
 	},
 	alloc::{boxed::Box, collections::VecDeque},
@@ -398,7 +398,7 @@ where
 }
 
 fn eval_predicate<'a, F, E: Environment>(
-	predicate: &'a AtRest,
+	predicate: &'a Predicate,
 	instance: InUse<'a, F, E>,
 	location: Location,
 	role: Role<'a, AsPredicate<Expanded>>,

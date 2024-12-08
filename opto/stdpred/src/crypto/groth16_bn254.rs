@@ -24,7 +24,7 @@ pub struct Challenge {
 #[predicate(id = 203, core_crate = opto_core)]
 pub fn groth16_bn254(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	match ctx.role {
@@ -56,7 +56,7 @@ pub fn groth16_bn254(
 			};
 
 			let challenge_digest = predicate.digest();
-			let proof_policy = AtRest {
+			let proof_policy = Predicate {
 				id: ctx.predicate_id(),
 				params: challenge_digest.as_ref().to_vec(),
 			};
@@ -88,7 +88,7 @@ impl VerifyingKey {
 	#[allow(clippy::result_unit_err)]
 	pub fn into_key(
 		self,
-		transition: &Transition,
+		transition: &Transition<Expanded>,
 	) -> Result<ark_groth16::VerifyingKey<ark_bn254::Bn254>, ()> {
 		match self {
 			VerifyingKey::Inline(key) => {
@@ -116,7 +116,7 @@ impl Challenge {
 	#[allow(clippy::result_unit_err)]
 	pub fn unpack(
 		self,
-		transition: &Transition,
+		transition: &Transition<Expanded>,
 	) -> Result<(ark_groth16::VerifyingKey<ark_bn254::Bn254>, Vec<Fr>), ()> {
 		let vk = self.verifying_key.into_key(transition)?;
 		let inputs =
@@ -192,7 +192,7 @@ pub mod test {
 			public_inputs: FIB20_INPUTS.to_vec(),
 		};
 
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(203),
 			params: challenge.encode(),
 		};
@@ -259,7 +259,7 @@ pub mod test {
 			public_inputs: FIB17_INPUTS.to_vec(),
 		};
 
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(203),
 			params: challenge.encode(),
 		};
@@ -312,7 +312,7 @@ pub mod test {
 			public_inputs: FIB20_INPUTS.to_vec(),
 		};
 
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(203),
 			params: challenge.encode(),
 		};
@@ -377,7 +377,7 @@ pub mod test {
 		// in the real world we will have serveral objects like this
 		// that store verification keys for different versions of
 		// zk frameworks circuits.
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(203),
 			params: challenge.encode(),
 		};
@@ -438,7 +438,7 @@ pub mod test {
 		// in the real world we will have serveral objects like this
 		// that store verification keys for different versions of
 		// zk frameworks circuits.
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(203),
 			params: challenge.encode(),
 		};

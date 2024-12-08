@@ -9,7 +9,6 @@ use std::collections::BTreeSet;
 use {
 	super::{Config, GenesisConfig, Timestamp, Vrf},
 	crate::pallet_objects::Pallet,
-	core::time::Duration,
 	frame_system::RawOrigin,
 	ipld_nostd::CarReader,
 	opto_core::Digest,
@@ -17,7 +16,7 @@ use {
 
 pub fn build<T: Config<I>, I: 'static>(config: &GenesisConfig<T, I>) {
 	Vrf::<T, I>::insert(0, config.vrf_seed.unwrap_or(Digest::from([0u8; 32])));
-	Timestamp::<T, I>::insert(0, Duration::ZERO);
+	Timestamp::<T, I>::insert(0, 0);
 
 	if !config.stdpred.is_empty() {
 		install_stdpred::<T, I>(&config.stdpred);

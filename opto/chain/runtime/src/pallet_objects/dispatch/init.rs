@@ -60,7 +60,7 @@ pub fn timestamp_update<T: Config<I>, I: 'static>(
 	// persist the timestamp of the current block
 	super::Timestamp::<T, I>::insert(
 		block_no,
-		pallet_timestamp::Pallet::<T>::now(),
+		pallet_timestamp::Pallet::<T>::now().as_millis() as u64,
 	);
 
 	// prune entries older than the max history length

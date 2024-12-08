@@ -12,7 +12,7 @@ use {
 #[predicate(id = 300, core_crate = opto_core)]
 pub fn output(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	ensure!(is_unlock(&ctx));

@@ -32,7 +32,7 @@ pub trait Verifier {
 /// the signature.
 pub fn signature_verification<V: Verifier>(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	param: &[u8],
 	verifier: V,
 ) -> bool {

@@ -1,6 +1,6 @@
 use {
 	super::Expression,
-	crate::AtRest,
+	crate::Predicate,
 	alloc::{format, vec::Vec},
 	core::{
 		fmt::{Debug, Formatter},
@@ -11,7 +11,7 @@ use {
 };
 
 /// The basic and most fundamental unit of state and behavior in the system.
-pub struct Object<P = AtRest, D = Vec<u8>> {
+pub struct Object<P = Predicate, D = Vec<u8>> {
 	/// A list of predicates that define the type and the behavior of the object.
 	/// All predicates must be satisfied for the object to be conlocationred
 	/// valid.
@@ -119,27 +119,27 @@ pub mod tests {
 		scale::{Decode, Encode},
 	};
 
-	pub fn test_object(shift: u32) -> Object<AtRest, Vec<u8>> {
-		let pred2: Expression<_> = AtRest {
+	pub fn test_object(shift: u32) -> Object<Predicate, Vec<u8>> {
+		let pred2: Expression<_> = Predicate {
 			id: PredicateId(2 + shift),
 			params: vec![3 + shift as u8, 4 + shift as u8, 5 + shift as u8],
 		}
 		.into();
 
-		let pred3: Expression<_> = AtRest {
+		let pred3: Expression<_> = Predicate {
 			id: PredicateId(3 + shift),
 			params: vec![6 + shift as u8, 7 + shift as u8, 8 + shift as u8],
 		}
 		.into();
 
-		let pred4: Expression<_> = AtRest {
+		let pred4: Expression<_> = Predicate {
 			id: PredicateId(4 + shift),
 			params: vec![9 + shift as u8, 11 + shift as u8, 12 + shift as u8],
 		}
 		.into();
 
 		Object {
-			policies: vec![AtRest {
+			policies: vec![Predicate {
 				id: PredicateId(shift),
 				params: vec![1 + shift as u8, 2 + shift as u8, 3 + shift as u8],
 			}],
@@ -157,7 +157,7 @@ pub mod tests {
 		assert!(encoded.len() <= size_hint);
 
 		let decoded =
-			Object::<AtRest, Vec<u8>>::decode(&mut encoded.as_slice()).unwrap();
+			Object::<Predicate, Vec<u8>>::decode(&mut encoded.as_slice()).unwrap();
 		assert_eq!(object, decoded);
 	}
 }

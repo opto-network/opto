@@ -27,7 +27,7 @@ use {
 #[predicate(id = 1000, core_crate = opto_core)]
 pub fn coin(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	ensure!(is_policy(&ctx));

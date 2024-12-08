@@ -11,7 +11,7 @@ type Hasher = blake2::Blake2b<U8>;
 #[predicate(id = 101, core_crate = opto_core)]
 pub fn nonce(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	param: &[u8],
 ) -> bool {
 	ensure!(is_policy(&ctx));
@@ -56,7 +56,7 @@ pub fn nonce(
 
 fn is_first_output_nonce(
 	ctx: &Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 ) -> bool {
 	let object_index = ctx
 		.object_index(transition)

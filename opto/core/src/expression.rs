@@ -1,7 +1,7 @@
 #[cfg(feature = "graph")]
 use petgraph::prelude::*;
 use {
-	crate::predicate::AtRest,
+	crate::predicate::Predicate,
 	alloc::{string::String, vec::Vec},
 	core::{
 		fmt::{Debug, Display},
@@ -198,7 +198,7 @@ impl<P: TypeInfo + 'static> TypeInfo for Op<P> {
 /// input of a state transition
 ///
 /// The expression tree is stored in the prefix (polish) notation.
-pub struct Expression<P = AtRest>(pub(crate) Vec<Op<P>>);
+pub struct Expression<P = Predicate>(pub(crate) Vec<Op<P>>);
 
 impl<P: PartialEq> PartialEq for Expression<P> {
 	fn eq(&self, other: &Self) -> bool {

@@ -20,7 +20,7 @@ use {
 	},
 	frame::traits::UnixTime,
 	frame_support::{assert_noop, assert_ok},
-	opto_core::{AtRest, Hashable, Object, Transition},
+	opto_core::{Predicate, Hashable, Object, Transition},
 	scale::Encode,
 	sp_keyring::AccountKeyring,
 };
@@ -44,7 +44,7 @@ fn time_based_unlock() {
 			inputs: vec![coin.digest()],
 			ephemerals: vec![], // signature will be attached later
 			outputs: vec![Object {
-				unlock: AtRest {
+				unlock: Predicate {
 					id: AFTER_TIME_PREDICATE,
 					params: UNLOCK_TIME.encode(),
 				}

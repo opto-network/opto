@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 	// of the wrapped asset to a new owner
 	let output = opto::Object {
 		policies: wrapped.policies,
-		unlock: opto::AtRest {
+		unlock: opto::Predicate {
 			id: opto::stdpred::crypto::sr25519::sr25519_id,
 			params: charlie.public_key().0.to_vec(),
 		}

@@ -40,7 +40,7 @@ pub fn unwrap<T: Config<I> + pallet_assets::Config<I>, I: 'static>(
 	ensure!(
 		object.unlock.as_ops().len() == 1
 			&& object.unlock.as_ops()[0]
-				== Op::Predicate(AtRest {
+				== Op::Predicate(Predicate {
 					id: T::DefaultSignatureVerifyPredicate::get(),
 					params: beneficiary.encode(),
 				}),

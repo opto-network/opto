@@ -3,7 +3,7 @@ use {
 	crate::{
 		eval::Context,
 		repr::{Expanded, Repr},
-		AtRest,
+		Predicate,
 	},
 	alloc::{collections::BTreeMap, vec::Vec},
 };
@@ -34,7 +34,7 @@ impl MockMachine {
 	pub fn factory_fn<'a>(
 		&'a self,
 	) -> impl Fn(
-		&'a AtRest,
+		&'a Predicate,
 	) -> Result<
 		alloc::boxed::Box<
 			dyn FnOnce(
@@ -45,7 +45,7 @@ impl MockMachine {
 		>,
 		(),
 	> {
-		move |predicate: &'a AtRest| {
+		move |predicate: &'a Predicate| {
 			let predicate = self.predicates.get(&predicate.id).cloned().ok_or(())?;
 
 			Ok(alloc::boxed::Box::new(
@@ -57,18 +57,18 @@ impl MockMachine {
 	}
 }
 
-pub fn predicate(id: u32, params: &[u8]) -> AtRest {
-	AtRest {
+pub fn predicate(id: u32, params: &[u8]) -> Predicate {
+	Predicate {
 		id: PredicateId(id),
 		params: params.to_vec(),
 	}
 }
 
 pub fn object(
-	policies: Vec<AtRest>,
-	unlock: Expression<AtRest>,
+	policies: Vec<Predicate>,
+	unlock: Expression<Predicate>,
 	data: Vec<u8>,
-) -> Object<AtRest, Vec<u8>> {
+) -> Object<Predicate, Vec<u8>> {
 	Object {
 		policies,
 		unlock,
@@ -85,7 +85,7 @@ impl ObjectBuilder<Expanded> {
 		Self {
 			object: Object {
 				policies: alloc::vec![],
-				unlock: AtRest {
+				unlock: Predicate {
 					id: PredicateId(100), // const true
 					params: alloc::vec![1],
 				}
@@ -100,7 +100,7 @@ impl ObjectBuilder<Expanded> {
 		self
 	}
 
-	pub fn with_unlock(mut self, unlock: Expression<AtRest>) -> Self {
+	pub fn with_unlock(mut self, unlock: Expression<Predicate>) -> Self {
 		self.object.unlock = unlock;
 		self
 	}
@@ -110,7 +110,7 @@ impl ObjectBuilder<Expanded> {
 		self
 	}
 
-	pub fn build(self) -> Object<AtRest, Vec<u8>> {
+	pub fn build(self) -> Object<Predicate, Vec<u8>> {
 		self.object
 	}
 }

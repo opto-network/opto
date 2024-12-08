@@ -1,5 +1,5 @@
 use {
-	crate::{AtRest, Expression, Object, Op, PredicateId},
+	crate::{Expression, Object, Op, Predicate, PredicateId},
 	scale_decode::ToString,
 	serde::{
 		de::VariantAccess,
@@ -11,10 +11,10 @@ use {
 	},
 };
 
-impl Serialize for AtRest {
+impl Serialize for Predicate {
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
 		let human_readable = serializer.is_human_readable();
-		let mut at_rest = serializer.serialize_struct("AtRest", 2)?;
+		let mut at_rest = serializer.serialize_struct("Predicate", 2)?;
 		at_rest.serialize_field("id", &self.id.0)?;
 		if human_readable {
 			at_rest.serialize_field(
@@ -28,7 +28,7 @@ impl Serialize for AtRest {
 	}
 }
 
-impl<'de> Deserialize<'de> for AtRest {
+impl<'de> Deserialize<'de> for Predicate {
 	fn deserialize<D: Deserializer<'de>>(
 		deserializer: D,
 	) -> Result<Self, D::Error> {
@@ -44,13 +44,13 @@ impl<'de> Deserialize<'de> for AtRest {
 		}
 
 		impl<'de> serde::de::Visitor<'de> for Visitor {
-			type Value = AtRest;
+			type Value = Predicate;
 
 			fn expecting(
 				&self,
 				formatter: &mut core::fmt::Formatter,
 			) -> core::fmt::Result {
-				formatter.write_str("struct AtRest")
+				formatter.write_str("struct Predicate")
 			}
 
 			fn visit_map<A: serde::de::MapAccess<'de>>(
@@ -89,7 +89,7 @@ impl<'de> Deserialize<'de> for AtRest {
 				let params =
 					params.ok_or_else(|| serde::de::Error::missing_field("params"))?;
 
-				Ok(AtRest {
+				Ok(Predicate {
 					id: PredicateId(id),
 					params,
 				})
@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for AtRest {
 		}
 
 		let human_readable = deserializer.is_human_readable();
-		deserializer.deserialize_struct("AtRest", &["id", "params"], Visitor {
+		deserializer.deserialize_struct("Predicate", &["id", "params"], Visitor {
 			human_readable,
 		})
 	}
@@ -303,23 +303,23 @@ impl<'de, P: Deserialize<'de>> Deserialize<'de> for Expression<P> {
 mod test {
 	use {
 		super::*,
-		crate::{AtRest, PredicateId},
+		crate::{Predicate, PredicateId},
 	};
 
 	#[test]
 	fn test_serde() {
-		let pred1 = AtRest {
+		let pred1 = Predicate {
 			id: PredicateId(1),
 			params: vec![1, 2, 3],
 		};
 
-		let pred2: Expression<_> = AtRest {
+		let pred2: Expression<_> = Predicate {
 			id: PredicateId(2),
 			params: vec![4, 5, 6],
 		}
 		.into();
 
-		let pred3: Expression<_> = AtRest {
+		let pred3: Expression<_> = Predicate {
 			id: PredicateId(3),
 			params: vec![7, 8, 9],
 		}

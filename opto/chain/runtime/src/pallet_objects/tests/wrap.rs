@@ -18,7 +18,7 @@ use {
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{AtRest, Expression, Hashable, Object, Op, PredicateId},
+	opto_core::{Predicate, Expression, Hashable, Object, Op, PredicateId},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -47,16 +47,16 @@ fn wrap_asset_into_object_default_unlock() {
 
 	let expected_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: nonce.to_vec(),
 			},
 		],
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		})]
@@ -157,13 +157,13 @@ fn wrap_asset_into_object_custom_unlock() {
 	const WRAPPED_AMOUNT: u64 = 300000;
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
-	let custom_unlock_expression: Expression<AtRest> = vec![
+	let custom_unlock_expression: Expression<Predicate> = vec![
 		Op::Or,
-		Op::Predicate(AtRest {
+		Op::Predicate(Predicate {
 			id: PREIMAGE_PREDICATE,
 			params: b"random-preimage".digest().encode(),
 		}),
-		Op::Predicate(AtRest {
+		Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		}),
@@ -181,11 +181,11 @@ fn wrap_asset_into_object_custom_unlock() {
 
 	let expected_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: nonce.to_vec(),
 			},
@@ -286,13 +286,13 @@ fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
 	const WRAPPED_AMOUNT: u64 = 300000;
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
-	let custom_unlock_expression: Expression<AtRest> = vec![
+	let custom_unlock_expression: Expression<Predicate> = vec![
 		Op::Or,
-		Op::Predicate(AtRest {
+		Op::Predicate(Predicate {
 			id: PredicateId(9909181),
 			params: b"random-preimage".digest().encode(),
 		}),
-		Op::Predicate(AtRest {
+		Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		}),
@@ -310,11 +310,11 @@ fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
 
 	let expected_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: nonce.to_vec(),
 			},

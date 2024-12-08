@@ -31,6 +31,7 @@ frame = { version = "0.7.0", package = "polkadot-sdk-frame", features = [
 
 frame-support = { version = "38.0.0", default-features = false }
 frame-system = { version = "38.0", default-features = false }
+frame-metadata = { version = "16.0.0", default-features = false, optional = true }
 
 sp-session = { version = "35.0.0", default-features = false }
 sp-genesis-builder = { version = "0.15.1", default-features = false }
@@ -94,6 +95,8 @@ try-runtime = [
   "frame-system/try-runtime",
   "sp-runtime/try-runtime",
 ]
+
+client-gen = ["frame-metadata"]
 
 [lints.clippy]
 manual_inspect = "allow"

@@ -59,6 +59,10 @@ fn after_genesis() -> TestExternalities {
 
 fn empty_genesis() -> TestExternalities {
 	let mut ext = TestExternalities::new_empty();
-	ext.execute_with(|| run_to_block(1));
+	ext.execute_with(|| {
+		pallet_objects::Timestamp::<Runtime>::insert(0, Duration::ZERO);
+		pallet_objects::Vrf::<Runtime>::insert(0, Digest::from([0u8; 32]));
+		run_to_block(1)
+	});
 	ext
 }

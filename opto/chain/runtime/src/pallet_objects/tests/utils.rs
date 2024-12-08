@@ -12,7 +12,7 @@ use {
 		traits::{fungible::Mutate, fungibles::Inspect},
 	},
 	interface::{AssetId, Balance},
-	opto_core::{AtRest, Hashable, Object, PredicateId, Transition},
+	opto_core::{Hashable, Object, Predicate, PredicateId, Transition},
 	repr::{Compact, Expanded},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
@@ -132,16 +132,16 @@ pub fn create_asset_object(
 
 	let expected_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: asset_id.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: nonce.to_vec(),
 			},
 		],
-		unlock: AtRest {
+		unlock: Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: owner.encode(),
 		}
@@ -259,11 +259,11 @@ pub fn sign(keyring: AccountKeyring, transition: &mut Transition<Compact>) {
 	let message = transition.digest_for_signing();
 	let signature = keyring.sign(message.as_slice());
 	transition.ephemerals.push(Object {
-		policies: vec![AtRest {
+		policies: vec![Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: keyring.to_account_id().encode(),
 		}],
-		unlock: AtRest {
+		unlock: Predicate {
 			id: PredicateId(100), // const
 			params: vec![1],
 		}

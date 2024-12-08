@@ -15,8 +15,18 @@ use {
 
 #[derive(Debug)]
 pub enum Event {
-	StateTransitioned(opto_core::Transition<Compact>),
-	PredicateInstalled(opto_core::PredicateId),
+	StateTransitioned {
+		height: u32,
+		transition: opto_core::Transition<Compact>,
+	},
+	PredicateInstalled {
+		height: u32,
+		id: opto_core::PredicateId,
+	},
+	VrfUpdated {
+		height: u32,
+		randomness: opto_core::Digest,
+	},
 	ChainFailed(anyhow::Error),
 }
 

@@ -15,3 +15,10 @@ subxt-signer = { version = "0.38" }
 futures = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { version = "0.1" }
+
+[build-dependencies]
+opto-chain-runtime = { path = "../chain/runtime", features = ["client-gen"] }
+subxt-metadata = { version = "0.37" }
+subxt-codegen = { version = "0.37" }
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"

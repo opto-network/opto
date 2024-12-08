@@ -51,7 +51,8 @@ impl<T: Config<I>, I: 'static> Environment for OnChainEnvironment<T, I> {
 	}
 
 	fn time_at(&self, block: u32) -> Option<Duration> {
-		Timestamp::<T, I>::get(block)
+		let moment = Timestamp::<T, I>::get(block)?;
+		Some(Duration::from_millis(moment))
 	}
 
 	fn history_len(&self) -> u32 {
@@ -148,7 +149,7 @@ pub fn attach_syscalls<'e, E: Environment + 'e>(
 	#[cfg(not(any(test, feature = "std")))]
 	let debug = Func::wrap(
 		store.as_context_mut(),
-		|caller: Caller<'_, &'e E>, ptr: u32, len: u32| {
+		|_: Caller<'_, &'e E>, _: u32, _: u32| {
 			// noop
 		},
 	);

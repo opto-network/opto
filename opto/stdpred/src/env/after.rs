@@ -6,7 +6,7 @@ use {core::time::Duration, opto_core::*, opto_onchain::*, scale::Decode};
 #[predicate(id = 402, core_crate = opto_core)]
 pub fn after_time(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let Ok(timestamp) = u32::decode(&mut &params[..]) else {
@@ -19,7 +19,7 @@ pub fn after_time(
 #[predicate(id = 403, core_crate = opto_core)]
 pub fn after_block(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let Ok(block) = u32::decode(&mut &params[..]) else {
@@ -42,7 +42,7 @@ mod test {
 	fn after_time() {
 		let locked_object = ObjectBuilder::new()
 			.with_unlock(
-				AtRest {
+				Predicate {
 					id: PredicateId(402),
 					params: 6000.encode(),
 				}
@@ -95,7 +95,7 @@ mod test {
 	fn after_block() {
 		let locked_object = ObjectBuilder::new()
 			.with_unlock(
-				AtRest {
+				Predicate {
 					id: PredicateId(403),
 					params: 60.encode(),
 				}

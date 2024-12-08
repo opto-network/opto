@@ -136,7 +136,7 @@ pub unsafe fn instantiate<E: Environment>(
 
 	Box::new(
 		move |context: Context<E>,
-		      transition: &Transition,
+		      transition: &Transition<Expanded>,
 		      params: &[u8]|
 		      -> bool {
 			let mut store = Store::new(&engine, context.env);
@@ -324,11 +324,11 @@ mod tests {
 		let func2 = unsafe { instantiate(bytecode.as_slice(), PredicateId(0)) };
 
 		let object1 = Object {
-			policies: vec![AtRest {
+			policies: vec![Predicate {
 				id: PredicateId(0),
 				params: vec![0],
 			}],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: PredicateId(0),
 				params: vec![0],
 			})]
@@ -381,11 +381,11 @@ mod tests {
 			unsafe { instantiate(bytecode502.as_slice(), PredicateId(502)) };
 
 		let object1 = Object {
-			policies: vec![AtRest {
+			policies: vec![Predicate {
 				id: PredicateId(502),
 				params: vec![1],
 			}],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: PredicateId(100),
 				params: vec![0],
 			})]
@@ -439,11 +439,11 @@ mod tests {
 			unsafe { instantiate(bytecode502.as_slice(), PredicateId(502)) };
 
 		let object1 = Object {
-			policies: vec![AtRest {
+			policies: vec![Predicate {
 				id: PredicateId(502),
 				params: vec![1],
 			}],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: PredicateId(100),
 				params: vec![1],
 			})]

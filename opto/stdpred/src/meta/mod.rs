@@ -8,7 +8,7 @@ use {crate::utils::*, opto_core::*, opto_onchain::predicate};
 #[predicate(id = 500, core_crate = opto_core)]
 pub fn ipfs(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let len_range = 16..=75;
@@ -21,7 +21,7 @@ pub fn ipfs(
 #[predicate(id = 501, core_crate = opto_core)]
 pub fn p2ptopic(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let len_range = 32..=32;
@@ -34,7 +34,7 @@ pub fn p2ptopic(
 #[predicate(id = 502, core_crate = opto_core)]
 pub fn multiaddr(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let len_range = 1..=255;
@@ -47,7 +47,7 @@ pub fn multiaddr(
 #[predicate(id = 503, core_crate = opto_core)]
 pub fn memo(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let len_range = 1..=255;

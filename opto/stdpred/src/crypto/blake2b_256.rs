@@ -16,7 +16,7 @@ use {
 #[predicate(id = 202, core_crate = opto_core)]
 pub fn blake2b_256(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	if params.len() != Digest::SIZE {
@@ -52,7 +52,7 @@ mod test {
 		let hashed = Digest::compute(data);
 		let locked_object = ObjectBuilder::new()
 			.with_unlock(
-				AtRest {
+				Predicate {
 					id: PredicateId(202),
 					params: hashed.to_vec(),
 				}
@@ -81,7 +81,7 @@ mod test {
 		);
 
 		let unlocking_object = ObjectBuilder::new()
-			.with_policy(AtRest {
+			.with_policy(Predicate {
 				id: PredicateId(202),
 				params: hashed.to_vec(),
 			})
@@ -98,7 +98,7 @@ mod test {
 
 		// replace it with a different preimage that is invalid
 		let invalid_unlocking_object = ObjectBuilder::new()
-			.with_policy(AtRest {
+			.with_policy(Predicate {
 				id: PredicateId(202),
 				params: hashed.to_vec(),
 			})

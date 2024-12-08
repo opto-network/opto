@@ -33,7 +33,7 @@ impl Verifier for Sr25519SubstrateVerifier {
 #[predicate(id = 201, core_crate = opto_core)]
 pub fn sr25519(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	param: &[u8],
 ) -> bool {
 	signature_verification(ctx, transition, param, Sr25519SubstrateVerifier)
@@ -59,7 +59,7 @@ impl TransitionExt for Transition<Compact> {
 	fn sign_with_sr25519(&mut self, signer: &Keypair) {
 		let predicate_id = sr25519_id;
 		let pubkey = signer.public_key();
-		let predicate = opto_core::AtRest {
+		let predicate = opto_core::Predicate {
 			id: predicate_id,
 			params: pubkey.as_ref().to_vec(),
 		};
@@ -76,7 +76,7 @@ impl TransitionExt for Transition<Compact> {
 		// if not, then add a new ephemeral object with the signature
 		let signature_object = Object {
 			policies: alloc::vec![predicate],
-			unlock: AtRest {
+			unlock: Predicate {
 				id: crate::util::constant::constant_id,
 				params: [1].to_vec(),
 			}

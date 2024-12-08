@@ -18,7 +18,7 @@ use {
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{AtRest, Hashable, Object, Op},
+	opto_core::{Predicate, Hashable, Object, Op},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -40,17 +40,17 @@ fn unwrap_object_with_nonce() {
 
 	let wrapped_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: nonce.encode(),
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
@@ -154,12 +154,12 @@ fn unwrap_object_without_nonce() {
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
 	let wrapped_object = Object {
-		policies: vec![AtRest {
+		policies: vec![Predicate {
 			id: COIN_PREDICATE,
 			params: ASSET_ID.encode(),
 		}],
 		data: WRAPPED_AMOUNT.encode(),
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
@@ -263,12 +263,12 @@ fn unwrap_object_invalid_recipient() {
 	const NATIVE_TOKEN_BALANCE: u64 = 1000;
 
 	let wrapped_object = Object {
-		policies: vec![AtRest {
+		policies: vec![Predicate {
 			id: COIN_PREDICATE,
 			params: ASSET_ID.encode(),
 		}],
 		data: WRAPPED_AMOUNT.encode(),
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Charlie.to_account_id().encode(),
 		})]
@@ -368,16 +368,16 @@ fn wrap_and_unwrap() {
 
 		let expected_object = Object {
 			policies: vec![
-				AtRest {
+				Predicate {
 					id: COIN_PREDICATE,
 					params: ASSET_ID.encode(),
 				},
-				AtRest {
+				Predicate {
 					id: NONCE_PREDICATE,
 					params: object_nonce.to_vec(),
 				},
 			],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: DEFAULT_SIGNATURE_PREDICATE,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]

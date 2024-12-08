@@ -19,7 +19,7 @@ use {
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{repr::Compact, AtRest, Hashable, Object, Op, Transition},
+	opto_core::{repr::Compact, Predicate, Hashable, Object, Op, Transition},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -37,17 +37,17 @@ fn wrap_move_unwrap() {
 
 	let moved_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: vec![], // will be fixed up later
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
@@ -97,16 +97,16 @@ fn wrap_move_unwrap() {
 
 		let wrapped_object = Object {
 			policies: vec![
-				AtRest {
+				Predicate {
 					id: COIN_PREDICATE,
 					params: ASSET_ID.encode(),
 				},
-				AtRest {
+				Predicate {
 					id: NONCE_PREDICATE,
 					params: object_nonce.to_vec(),
 				},
 			],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: DEFAULT_SIGNATURE_PREDICATE,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]
@@ -249,17 +249,17 @@ fn move_object_wrong_unlock() {
 
 	let moved_object = Object {
 		policies: vec![
-			AtRest {
+			Predicate {
 				id: COIN_PREDICATE,
 				params: ASSET_ID.encode(),
 			},
-			AtRest {
+			Predicate {
 				id: NONCE_PREDICATE,
 				params: vec![], // will be fixed up later
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
-		unlock: vec![Op::Predicate(AtRest {
+		unlock: vec![Op::Predicate(Predicate {
 			id: DEFAULT_SIGNATURE_PREDICATE,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
@@ -311,16 +311,16 @@ fn move_object_wrong_unlock() {
 
 		let wrapped_object = Object {
 			policies: vec![
-				AtRest {
+				Predicate {
 					id: COIN_PREDICATE,
 					params: ASSET_ID.encode(),
 				},
-				AtRest {
+				Predicate {
 					id: NONCE_PREDICATE,
 					params: nonce.to_vec(),
 				},
 			],
-			unlock: vec![Op::Predicate(AtRest {
+			unlock: vec![Op::Predicate(Predicate {
 				id: DEFAULT_SIGNATURE_PREDICATE,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]

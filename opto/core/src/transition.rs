@@ -5,10 +5,10 @@ use {
 		env::Environment,
 		eval::{Context, InUse},
 		repr::{AsInput, AsObject, Compact, Executable, Expanded, Repr},
-		AtRest,
 		Digest,
 		Hashable,
 		Object,
+		Predicate,
 	},
 	core::fmt::Debug,
 	scale::{Decode, Encode},
@@ -27,7 +27,7 @@ use {
 /// created by the transition and are only available during the execution
 /// of the transition. Output objects are created by the transition and
 /// are available after the transition is executed.
-pub struct Transition<R: Repr = Expanded> {
+pub struct Transition<R: Repr = Compact> {
 	pub inputs: Vec<R::InputObject>,
 	pub ephemerals: Vec<AsObject<R>>,
 	pub outputs: Vec<AsObject<R>>,
@@ -166,7 +166,7 @@ impl Transition<Expanded> {
 		builder: B,
 	) -> Result<Transition<Executable<'a, F, Env>>, E>
 	where
-		B: Fn(&'a AtRest) -> Result<F, E> + 'a,
+		B: Fn(&'a Predicate) -> Result<F, E> + 'a,
 		F: FnOnce(Context<'a, Env>, &'a Transition<Expanded>, &'a [u8]) -> bool,
 	{
 		Ok(Transition {

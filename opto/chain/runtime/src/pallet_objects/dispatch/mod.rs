@@ -21,7 +21,7 @@ pub use {
 
 fn consume_input<T: Config<I>, I: 'static>(
 	digest: Digest,
-) -> Result<Object<AtRest, Vec<u8>>, Error<T, I>> {
+) -> Result<Object<Predicate, Vec<u8>>, Error<T, I>> {
 	let stored_object = Objects::<T, I>::get(digest) //
 		.ok_or(Error::<T, I>::InputObjectNotFound)?;
 
@@ -43,7 +43,7 @@ fn consume_input<T: Config<I>, I: 'static>(
 }
 
 fn produce_output<T: Config<I>, I: 'static>(
-	object: Object<AtRest, Vec<u8>>,
+	object: Object<Predicate, Vec<u8>>,
 ) -> Result<Digest, Error<T, I>> {
 	if object.encoded_size() > T::MaximumObjectSize::get() as usize {
 		return Err(Error::<T, I>::ObjectTooLarge);

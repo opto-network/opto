@@ -3,7 +3,7 @@ use {proc_macro2::TokenStream, quote::quote};
 pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 	quote! {
 		use ::#core_crate::{
-			Object, Transition, AtRest,
+			Object, Transition, Predicate,
 			eval::{Location, Context, Role},
 			codec::Decode,
 		};
@@ -31,7 +31,7 @@ pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 		};
 
 		let index = pred_index as usize;
-		let role: Role<'_, AtRest> = match pred_role {
+		let role: Role<'_, Predicate> = match pred_role {
 			0 => Role::Policy(&object.policies[index], index),
 			1 => Role::Unlock(&object.unlock.as_ops()[index].as_predicate().unwrap(), index),
 			_ => panic!("Invalid role value"),

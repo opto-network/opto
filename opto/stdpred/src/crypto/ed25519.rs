@@ -44,7 +44,7 @@ impl Verifier for Ed25519Verifier {
 #[predicate(id = 200, core_crate = opto_core)]
 pub fn ed25519(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	param: &[u8],
 ) -> bool {
 	signature_verification(ctx, transition, param, Ed25519Verifier)

@@ -54,9 +54,13 @@ pub async fn start_chain(
 		let mut import_rx = import_rx;
 		while let Some(import) = import_rx.next().await {
 			if import.origin == sp_consensus::BlockOrigin::Own {
-				let state = client_ref.state_at(import.hash).unwrap();
+				let height = import.header.number;
 				let events_key = get_events_storage_key();
-				if let Some(events_storage) = state.storage(&events_key).unwrap() {
+				let Ok(state) = client_ref.state_at(import.hash) else {
+					continue;
+				};
+
+				if let Ok(Some(events_storage)) = state.storage(&events_key) {
 					let events_vec: Vec<
 						EventRecord<runtime::RuntimeEvent, sp_core::hash::H256>,
 					> = Decode::decode(&mut &events_storage[..]).unwrap();
@@ -64,10 +68,18 @@ pub async fn start_chain(
 						if let runtime::RuntimeEvent::Objects(event) = event.event {
 							match event {
 								pallet_objects::Event::StateTransitioned { transition } => {
-									let _ = events_tx.send(Event::StateTransitioned(transition));
+									let _ = events_tx
+										.send(Event::StateTransitioned { height, transition });
 								}
 								pallet_objects::Event::PredicateInstalled { id } => {
-									let _ = events_tx.send(Event::PredicateInstalled(id));
+									let _ =
+										events_tx.send(Event::PredicateInstalled { id, height });
+								}
+								pallet_objects::Event::VrfUpdated { vrf } => {
+									let _ = events_tx.send(Event::VrfUpdated {
+										height,
+										randomness: vrf,
+									});
 								}
 								_ => unreachable!(),
 							}

@@ -12,7 +12,7 @@ use {
 #[predicate(id = 301, core_crate = opto_core)]
 pub fn ephemeral(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	ensure!(is_unlock(&ctx));

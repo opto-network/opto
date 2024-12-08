@@ -29,7 +29,7 @@ pub struct Sp1Groth16Challenge {
 #[predicate(id = 204, core_crate = opto_core)]
 pub fn sp1_groth16(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	match ctx.role {
@@ -119,8 +119,8 @@ pub fn sp1_groth16(
 
 fn find_challenge_response<'a>(
 	ctx: &Context<'_, impl Environment>,
-	transition: &'a Transition,
-	challenge_predicate: &AtRest,
+	transition: &'a Transition<Expanded>,
+	challenge_predicate: &Predicate,
 ) -> Option<&'a [u8]> {
 	let challenge_digest = challenge_predicate.digest();
 	let needle = challenge_digest.as_slice();
@@ -141,7 +141,7 @@ fn find_challenge_response<'a>(
 /// compile the program.
 fn find_sp1_circuit_vk<'a>(
 	hash_prefix: &[u8],
-	transition: &'a Transition,
+	transition: &'a Transition<Expanded>,
 ) -> Option<&'a [u8]> {
 	transition
 		.inputs
@@ -403,7 +403,7 @@ mod test {
 			code_cid: None,
 		};
 
-		let challenge_pred = AtRest {
+		let challenge_pred = Predicate {
 			id: PredicateId(204),
 			params: challenge.encode(),
 		};

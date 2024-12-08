@@ -11,7 +11,7 @@ use {
 #[predicate(id = 400, core_crate = opto_core)]
 pub fn before_time(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let Ok(timestamp) = u32::decode(&mut &params[..]) else {
@@ -24,7 +24,7 @@ pub fn before_time(
 #[predicate(id = 401, core_crate = opto_core)]
 pub fn before_block(
 	ctx: Context<'_, impl Environment>,
-	_: &Transition,
+	_: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	let Ok(block) = u32::decode(&mut &params[..]) else {

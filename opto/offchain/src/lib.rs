@@ -1,6 +1,9 @@
 mod client;
-mod model;
 mod transition;
+
+mod model {
+	include!(concat!(env!("OUT_DIR"), "/model.rs"));
+}
 
 pub use {
 	client::*,

@@ -58,7 +58,7 @@ pub struct PredicateId(pub u32);
 	DecodeAsType,
 	Hash,
 )]
-pub struct AtRest {
+pub struct Predicate {
 	/// A unique identifier for the predicate.
 	///
 	/// Predicates are known to the blockchain and are identified by a numerical
@@ -80,7 +80,7 @@ pub struct AtRest {
 	pub params: Vec<u8>,
 }
 
-impl core::fmt::Debug for AtRest {
+impl core::fmt::Debug for Predicate {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Predicate")
 			.field("id", &self.id)

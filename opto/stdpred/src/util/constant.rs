@@ -14,7 +14,7 @@ use {opto_core::*, opto_onchain::predicate};
 #[predicate(id = 100, core_crate = opto_core)]
 pub fn constant(
 	ctx: Context<'_, impl Environment>,
-	transition: &Transition,
+	transition: &Transition<Expanded>,
 	params: &[u8],
 ) -> bool {
 	match ctx.role {

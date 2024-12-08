@@ -23,11 +23,11 @@ macro_rules! debug {
 macro_rules! debug {
     ($($arg:tt)*) => {
         {
-          #[cfg(test)]
+          #[cfg(any(test, feature = "std"))]
 					let s = format!($($arg)*);
-          #[cfg(test)]
+          #[cfg(any(test, feature = "std"))]
 					let s = format!("[{}:{}] {s}", file!(), line!());
-          #[cfg(test)]
+          #[cfg(any(test, feature = "std"))]
           eprintln!("{s}");
         }
     };

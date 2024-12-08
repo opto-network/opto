@@ -20,7 +20,7 @@ pub fn apply<T: Config<I>, I: 'static>(
 
 		// an executable version of the predicate that has runnable predicate code
 		// and references to the at-rest version of the transition.
-		let instantiated = expanded.instantiate(|pred: &AtRest| {
+		let instantiated = expanded.instantiate(|pred: &Predicate| {
 			// load predicate wasm code
 			let bytecode = Predicates::<T, I>::get(pred.id)
 				.ok_or(Error::<T, I>::PredicateNotFound)?;

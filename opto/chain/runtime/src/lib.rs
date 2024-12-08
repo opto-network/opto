@@ -48,6 +48,11 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
+#[cfg(feature = "client-gen")]
+pub fn runtime_metadata() -> frame_metadata::RuntimeMetadataPrefixed {
+	Runtime::metadata()
+}
+
 /// The signed extensions that are added to the runtime.
 type SignedExtra = (
 	// Checks that the sender is not the zero address.

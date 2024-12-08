@@ -21,7 +21,7 @@ pub use {
 	eval::{Context, Error as EvalError, Location, Role},
 	expression::{Expression, Op},
 	object::Object,
-	predicate::{AtRest, PredicateId},
+	predicate::{Predicate, PredicateId},
 	repr::{Compact, Expanded},
 	scale as codec,
 	transition::Transition,
