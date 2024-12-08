@@ -3,7 +3,7 @@ use {proc_macro2::TokenStream, quote::quote};
 pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 	quote! {
 		use ::#core_crate::{
-			Object, Transition, Predicate,
+			Object, Transition, Predicate, Expanded,
 			eval::{Location, Context, Role},
 			codec::Decode,
 		};
@@ -12,7 +12,7 @@ pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 			::core::slice::from_raw_parts(transition_ptr, transition_len as usize)
 		};
 
-		let transition: Transition = Decode::decode(&mut transition)
+		let transition: Transition<Expanded> = Decode::decode(&mut transition)
 			.expect("Failed to decode transition bytes");
 
 

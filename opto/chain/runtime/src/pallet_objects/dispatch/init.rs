@@ -1,6 +1,6 @@
 use {
 	super::Config,
-	crate::pallet_objects::{config::WeightInfo, Event, Pallet, Vrf},
+	crate::pallet_objects::{config::WeightInfo, Vrf},
 	frame::{
 		prelude::*,
 		traits::{UnixTime, Zero},
@@ -42,9 +42,6 @@ pub fn vrf_update<T: Config<I>, I: 'static>(
 	if block_no >= vrf_history_len {
 		Vrf::<T, I>::remove(block_no - vrf_history_len);
 	}
-
-	// emit an event at the beginning of the block
-	Pallet::<T, I>::deposit_event(Event::VrfUpdated { vrf: new_vrf });
 	<<T as super::Config<I>>::WeightInfo as WeightInfo>::vrf_init()
 }
 

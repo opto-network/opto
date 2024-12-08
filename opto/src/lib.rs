@@ -8,6 +8,8 @@
 pub use opto_core::{self as core, *};
 #[cfg(feature = "offchain-sdk")]
 pub use opto_offchain::*;
+#[cfg(feature = "onchain-sdk")]
+pub use opto_onchain as onchain;
 #[cfg(feature = "build")]
 pub use opto_onchain::builder;
 #[cfg(feature = "onchain-sdk")]

@@ -17,6 +17,7 @@ pub(crate) struct Project {
 	package_dir: PathBuf,
 	manifest_file: PathBuf,
 	cargo_ctx: cargo::GlobalContext,
+	features: Vec<String>,
 }
 
 impl Project {
@@ -27,11 +28,21 @@ impl Project {
 		let manifest_file = PathBuf::from(manifest_dir).join("Cargo.toml");
 		let cargo_ctx = cargo::GlobalContext::default()?;
 
+		let features: Vec<String> = std::env::vars()
+			.filter_map(|(key, _)| {
+				// Look for environment variables that start with "CARGO_FEATURE_"
+				key
+					.strip_prefix("CARGO_FEATURE_")
+					.map(|feature| feature.replace('_', "-").to_lowercase())
+			})
+			.collect();
+
 		Ok(Self {
 			package_name,
 			package_dir,
 			manifest_file,
 			cargo_ctx,
+			features,
 		})
 	}
 
@@ -45,6 +56,10 @@ impl Project {
 
 	pub fn package_dir(&self) -> &PathBuf {
 		&self.package_dir
+	}
+
+	pub fn features(&self) -> &[String] {
+		&self.features
 	}
 
 	pub fn targets(

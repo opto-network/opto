@@ -30,6 +30,7 @@ pub struct BuildTarget<'p> {
 	wrapper_manifest: PathBuf,
 	wrapper_package_name: String,
 	wrapper_target_dir: PathBuf,
+	lib_crate_name: String,
 }
 
 impl<'p> BuildTarget<'p> {
@@ -44,6 +45,25 @@ impl<'p> BuildTarget<'p> {
 		let wrapper_package_name = format!("predicate-{}", predicate_id);
 		let wrapper_target_dir = target_dir.join("target");
 
+		let ws = cargo::core::Workspace::new(
+			&project.package_dir().join("Cargo.toml"),
+			project.cargo_ctx(),
+		)?;
+
+		let package = ws
+			.members()
+			.find(|p| p.name().as_str() == project.package_name())
+			.ok_or(anyhow::anyhow!(
+				"Package {} not found",
+				project.package_name()
+			))?;
+
+		let lib_crate_name = match package.library() {
+			Some(lib) => lib.name(),
+			None => project.package_name(),
+		}
+		.to_string();
+
 		Ok(Self {
 			predicate_id,
 			target_dir,
@@ -52,6 +72,7 @@ impl<'p> BuildTarget<'p> {
 			wrapper_manifest,
 			wrapper_package_name,
 			wrapper_target_dir,
+			lib_crate_name,
 		})
 	}
 
@@ -64,6 +85,14 @@ impl<'p> BuildTarget<'p> {
 	) -> anyhow::Result<cargo::core::Workspace<'_>> {
 		std::fs::create_dir_all(&self.wrapper_dir)?;
 
+		let features_str = self
+			.project
+			.features()
+			.iter()
+			.map(|f| format!("\"{}\"", f))
+			.collect::<Vec<_>>()
+			.join(", ");
+
 		let cargo_toml = format!(
 			r###"
       [package]
@@ -75,7 +104,7 @@ impl<'p> BuildTarget<'p> {
 			crate-type = ["cdylib"]
 
       [dependencies]
-      {} = {{ path = "{}" }}
+      {} = {{ path = "{}", features = [{}] }}
       wee_alloc = "0.4.5"
        
       [profile.release]
@@ -91,6 +120,7 @@ impl<'p> BuildTarget<'p> {
 			self.wrapper_package_name,
 			self.project.package_name(),
 			self.project.package_dir().to_string_lossy(),
+			features_str
 		);
 
 		std::fs::write(&self.wrapper_manifest, cargo_toml)?;
@@ -120,7 +150,7 @@ impl<'p> BuildTarget<'p> {
 
       pub use {}::*;
       "###,
-			self.project.package_name().replace("-", "_"),
+			self.lib_crate_name.replace("-", "_"),
 		);
 		std::fs::write(self.wrapper_dir.join("src/lib.rs"), lib_rs)?;
 

@@ -88,6 +88,15 @@ pub mod pallet {
 		/// The maximum number of bytes that predicate code can have.
 		type MaximumPredicateSize: Get<u32>;
 
+		/// The maximum number of bytes that a CAR archive can have.
+		type MaximumArchiveSize: Get<u32>;
+
+		/// The maximum predicate ID that is reserved for system predicates.
+		/// Any predicates installed with IDs equal or less than this value need
+		/// to be installed by the root account. All stdpred predicates are
+		/// installed during genesis by the root account.
+		type ReservedPredicateIds: Get<PredicateId>;
+
 		/// The maximum number of bytes an object can have in its encoded form.
 		type MaximumObjectSize: Get<u32>;
 
@@ -117,9 +126,11 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
+		/// A state transition has occured.
 		StateTransitioned { transition: Transition<Compact> },
+
+		/// A new predicate was installed
 		PredicateInstalled { id: PredicateId },
-		VrfUpdated { vrf: Digest },
 	}
 
 	#[pallet::pallet]
@@ -177,6 +188,15 @@ pub mod pallet {
 		/// exporting wrong signatures or the WASM code itself is
 		/// not a valid WASM code.
 		InvalidPredicateCode(vm::Error),
+
+		/// The CAR archive that is being installed is invalid.
+		InvalidPredicateArchive,
+
+		/// The CAR archive that is being installed is too large.
+		PredicateArchiveTooLarge,
+
+		/// The predicate Id used is reserved for system predicates.
+		InvalidPredicateId,
 
 		/// An attempt to wrap zero amount of an asset.
 		ZeroWrapAmount,

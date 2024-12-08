@@ -1,6 +1,6 @@
 use {
 	quote::ToTokens,
-	subxt_codegen::syn::parse_quote,
+	subxt_codegen::CodegenBuilder,
 	syn::{parse2, File},
 };
 
@@ -10,12 +10,12 @@ fn main() {
 			.try_into()
 			.expect("runtime metadata conversion failed");
 
-	let mut generator = subxt_codegen::CodegenBuilder::new();
-	generator
-		.set_type_substitute(parse_quote!(opto_core), parse_quote!(::opto_core));
-
-	let code = generator.generate(metadata).unwrap();
-	let mut code: File = parse2(code).unwrap();
+	let mut code: File = parse2(
+		CodegenBuilder::new()
+			.generate(metadata)
+			.expect("failed to generate client model from metadata"),
+	)
+	.expect("metadata codegen generated invalid code");
 
 	swap_generated_opto_core(&mut code);
 

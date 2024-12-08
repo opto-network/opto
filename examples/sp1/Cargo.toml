@@ -1,0 +1,40 @@
+[package]
+name = "example-sp1"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+publish = false
+description = "Opto SDK Examples"
+
+[lib]
+name = "example_sp1_predicate"
+path = "src/predicate.rs"
+required-features = ["onchain"]
+
+[[bin]]
+name = "example_sp1_solver"
+path = "src/solver.rs"
+required-features = ["offchain"]
+
+[[bin]]
+name = "example_sp1_patron"
+path = "src/patron.rs"
+required-features = ["offchain"]
+
+[features]
+onchain = ["opto/onchain-sdk"]
+offchain = ["opto/offchain-sdk", "tokio", "anyhow"]
+
+[dependencies]
+opto = { path = "../../opto", default-features = false }
+
+tokio = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+
+[build-dependencies]
+opto = { path = "../../opto", features = ["build"], default-features = false }

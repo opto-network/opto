@@ -2,6 +2,7 @@ use {
 	super::{rpc, ChainOpts, Event},
 	frame_system::EventRecord,
 	futures::StreamExt,
+	opto_core::Digest,
 	runtime::{interface::OpaqueBlock as Block, pallet_objects, RuntimeApi},
 	sc_cli::CliConfiguration,
 	sc_network::NetworkBackend,
@@ -75,16 +76,17 @@ pub async fn start_chain(
 									let _ =
 										events_tx.send(Event::PredicateInstalled { id, height });
 								}
-								pallet_objects::Event::VrfUpdated { vrf } => {
-									let _ = events_tx.send(Event::VrfUpdated {
-										height,
-										randomness: vrf,
-									});
-								}
 								_ => unreachable!(),
 							}
 						}
 					}
+				}
+
+				let key = get_vrf_storage_key(height);
+				println!("trying vrf storage key: {}", hex::encode(&key));
+				if let Ok(Some(vrf)) = state.storage(&key) {
+					let randomness: Digest = Decode::decode(&mut &vrf[..]).unwrap();
+					let _ = events_tx.send(Event::VrfUpdated { height, randomness });
 				}
 			}
 		}
@@ -233,5 +235,14 @@ fn get_events_storage_key() -> Vec<u8> {
 	let storage_item_name = b"Events";
 	let mut key = twox_128(pallet_name).to_vec();
 	key.extend_from_slice(&twox_128(storage_item_name)[..]);
+	key
+}
+
+fn get_vrf_storage_key(height: u32) -> Vec<u8> {
+	let pallet_name = b"Objects";
+	let storage_item_name = b"Vrf";
+	let mut key = twox_128(pallet_name).to_vec();
+	key.extend_from_slice(&twox_128(storage_item_name)[..]);
+	key.extend_from_slice(&height.to_le_bytes());
 	key
 }

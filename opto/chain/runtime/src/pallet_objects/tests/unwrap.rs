@@ -4,12 +4,7 @@ use {
 		pallet_objects::{
 			self,
 			tests::{
-				utils::{
-					create_asset,
-					install_test_predicates,
-					mint_asset,
-					mint_native_token,
-				},
+				utils::{create_asset, mint_asset, mint_native_token},
 				NONCE_PREDICATE,
 				VAULT,
 			},
@@ -18,7 +13,7 @@ use {
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{Predicate, Hashable, Object, Op},
+	opto_core::{Hashable, Object, Op, Predicate},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -58,9 +53,7 @@ fn unwrap_object_with_nonce() {
 		.unwrap(),
 	};
 
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
+	after_genesis().execute_with(|| {
 		mint_native_token(
 			&AccountKeyring::Alice.to_account_id(),
 			NATIVE_TOKEN_BALANCE,
@@ -167,9 +160,7 @@ fn unwrap_object_without_nonce() {
 		.unwrap(),
 	};
 
-	TestState::new_empty().execute_with(|| {
-		install_test_predicates().unwrap();
-
+	after_genesis().execute_with(|| {
 		mint_native_token(
 			&AccountKeyring::Alice.to_account_id(),
 			NATIVE_TOKEN_BALANCE,
