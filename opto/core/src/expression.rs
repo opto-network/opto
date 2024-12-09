@@ -614,7 +614,7 @@ impl<'a, P> ExpressionTree<'a, P> {
 }
 
 #[cfg(feature = "graph")]
-impl<'a, P: Debug> Debug for ExpressionTree<'a, P> {
+impl<P: Debug> Debug for ExpressionTree<'_, P> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		write!(
 			f,
@@ -629,7 +629,7 @@ impl<'a, P: Debug> Debug for ExpressionTree<'a, P> {
 /// Constructs an expression from an expression tree that is compatible with
 /// petgraph.
 #[cfg(feature = "graph")]
-impl<'a, P: Clone> TryFrom<ExpressionTree<'a, P>> for Expression<P> {
+impl<P: Clone> TryFrom<ExpressionTree<'_, P>> for Expression<P> {
 	type Error = Error;
 
 	fn try_from(value: ExpressionTree<P>) -> Result<Self, Self::Error> {
@@ -753,14 +753,14 @@ pub struct ExpressionTreeCursor<'a, P> {
 }
 
 #[cfg(feature = "graph")]
-impl<'a, P> Clone for ExpressionTreeCursor<'a, P> {
+impl<P> Clone for ExpressionTreeCursor<'_, P> {
 	fn clone(&self) -> Self {
 		*self
 	}
 }
 
 #[cfg(feature = "graph")]
-impl<'a, P> Copy for ExpressionTreeCursor<'a, P> {}
+impl<P> Copy for ExpressionTreeCursor<'_, P> {}
 
 /// Implements the navigation API for the expression tree.
 ///

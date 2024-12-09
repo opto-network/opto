@@ -2,8 +2,10 @@
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec};
+use alloc::vec;
 
+#[cfg(any(test, feature = "std"))]
+use wasmi::AsContext;
 use {
 	crate::pallet_objects::{Config, Timestamp, Vrf},
 	core::{marker::PhantomData, time::Duration},
@@ -11,7 +13,6 @@ use {
 	opto_core::{env::Environment, Digest, PredicateId},
 	sp_core::U256,
 	wasmi::{
-		AsContext,
 		AsContextMut,
 		Caller,
 		Engine,

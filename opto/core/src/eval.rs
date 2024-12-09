@@ -104,7 +104,7 @@ pub struct Context<'a, E: Environment> {
 	pub env: &'a E,
 }
 
-impl<'a, E: Environment> Context<'a, E> {
+impl<E: Environment> Context<'_, E> {
 	/// Index of the object that contains the predicate being evaluated in the
 	/// state transition objects list.
 	///
@@ -154,14 +154,14 @@ pub enum Role<'a, P> {
 	Unlock(&'a P, usize),
 }
 
-impl<'a, P> Clone for Role<'a, P> {
+impl<P> Clone for Role<'_, P> {
 	fn clone(&self) -> Self {
 		*self
 	}
 }
-impl<'a, P> Copy for Role<'a, P> {}
+impl<P> Copy for Role<'_, P> {}
 
-impl<'a, P> Debug for Role<'a, P> {
+impl<P> Debug for Role<'_, P> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Role::Policy(_, i) => write!(f, "Policy({})", i),
@@ -170,7 +170,7 @@ impl<'a, P> Debug for Role<'a, P> {
 	}
 }
 
-impl<'a, P> PartialEq for Role<'a, P> {
+impl<P> PartialEq for Role<'_, P> {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
 			(Role::Policy(_, i), Role::Policy(_, j)) => i == j,
@@ -180,7 +180,7 @@ impl<'a, P> PartialEq for Role<'a, P> {
 	}
 }
 
-impl<'a, P> Role<'a, P> {
+impl<P> Role<'_, P> {
 	pub const fn is_policy(&self) -> bool {
 		matches!(self, Role::Policy(_, _))
 	}

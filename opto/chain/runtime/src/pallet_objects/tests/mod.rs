@@ -9,12 +9,17 @@ use {
 mod apply;
 mod env;
 mod install;
+mod unique;
 mod unwrap;
 mod utils;
 mod wrap;
 
 #[allow(dead_code)]
 pub(crate) const VAULT: AccountId = AccountId::new([0u8; 32]);
+
+#[cfg(test)]
+#[allow(dead_code)]
+pub(crate) const CONST_PREDICATE: PredicateId = PredicateId(100);
 
 #[allow(dead_code)]
 pub(crate) const COIN_PREDICATE: PredicateId =
@@ -35,7 +40,11 @@ pub(crate) const DEFAULT_SIGNATURE_PREDICATE: PredicateId =
 	<Runtime as pallet_objects::Config>::DefaultSignatureVerifyPredicate::get();
 
 #[allow(dead_code)]
-pub(crate) const PREIMAGE_PREDICATE: PredicateId = PredicateId(201);
+pub(crate) const PREIMAGE_PREDICATE: PredicateId = PredicateId(202);
+
+#[allow(dead_code)]
+pub(crate) const UNIQUE_PREDICATE: PredicateId =
+	<Runtime as pallet_objects::Config>::UniquePolicyPredicate::get();
 
 fn after_genesis() -> TestExternalities {
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()

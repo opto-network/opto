@@ -40,11 +40,8 @@ pub fn native_impl_factory<E: Environment + 'static>(
 		util::ids::nonce => util::nonce,
 
 		// crypto
-		crypto::ids::ed25519 => crypto::ed25519,
 		crypto::ids::sr25519 => crypto::sr25519,
 		crypto::ids::blake2b_256 => crypto::blake2b_256,
-		crypto::ids::groth16_bn254 => crypto::groth16_bn254,
-		crypto::ids::sp1_groth16 => crypto::sp1_groth16,
 
 		// intents
 		intent::ids::output => intent::output,

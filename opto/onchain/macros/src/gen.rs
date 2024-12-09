@@ -15,7 +15,6 @@ pub fn predicate_context(core_crate: &syn::Ident) -> TokenStream {
 		let transition: Transition<Expanded> = Decode::decode(&mut transition)
 			.expect("Failed to decode transition bytes");
 
-
 		let location = match location {
 				0 => Location::Input,
 				1 => Location::Ephemeral,

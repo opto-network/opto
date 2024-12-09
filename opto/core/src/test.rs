@@ -13,6 +13,14 @@ pub use crate::env::StaticEnvironment;
 pub type PredicateFn =
 	fn(Context<'_, StaticEnvironment>, &Transition<Expanded>, &[u8]) -> bool;
 
+type BoxedPredicate = alloc::boxed::Box<
+	dyn FnOnce(
+		Context<'_, StaticEnvironment>,
+		&Transition<Expanded>,
+		&[u8],
+	) -> bool,
+>;
+
 #[derive(Default)]
 pub struct MockMachine {
 	pub predicates: BTreeMap<PredicateId, PredicateFn>,
@@ -33,18 +41,7 @@ impl MockMachine {
 	/// the native rust function that can be used to evaluate the predicate.
 	pub fn factory_fn<'a>(
 		&'a self,
-	) -> impl Fn(
-		&'a Predicate,
-	) -> Result<
-		alloc::boxed::Box<
-			dyn FnOnce(
-				Context<'_, StaticEnvironment>,
-				&Transition<Expanded>,
-				&[u8],
-			) -> bool,
-		>,
-		(),
-	> {
+	) -> impl Fn(&'a Predicate) -> Result<BoxedPredicate, ()> {
 		move |predicate: &'a Predicate| {
 			let predicate = self.predicates.get(&predicate.id).cloned().ok_or(())?;
 

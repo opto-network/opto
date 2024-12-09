@@ -39,6 +39,13 @@ fn consume_input<T: Config<I>, I: 'static>(
 		});
 	}
 
+	// if the object has a uniqueness policy, we need to remove it
+	// and allow new objects with the same uniqueness policy to be
+	// created.
+	if let Some(uniqueness) = uniqueness::<T, I>(&stored_object.object) {
+		Uniques::<T, I>::remove(uniqueness);
+	}
+
 	Ok(stored_object.object)
 }
 
@@ -51,6 +58,15 @@ fn produce_output<T: Config<I>, I: 'static>(
 
 	if object.policies.len() > T::MaximumObjectPolicies::get() as usize {
 		return Err(Error::<T, I>::TooManyPolicies);
+	}
+
+	// uphold the uniqueness policy
+	if let Some(uniqueness) = uniqueness::<T, I>(&object) {
+		if Uniques::<T, I>::contains_key(uniqueness) {
+			return Err(Error::<T, I>::UniqueAlreadyExists);
+		}
+
+		Uniques::<T, I>::insert(uniqueness, ());
 	}
 
 	let digest = object.digest();
@@ -66,4 +82,15 @@ fn produce_output<T: Config<I>, I: 'static>(
 	Objects::<T, I>::insert(digest, stored_object);
 
 	Ok(digest)
+}
+
+/// Checks if an object is tagged with a uniqueness policy and returns the
+/// digest of the policy if it is.
+fn uniqueness<T: Config<I>, I: 'static>(object: &Object) -> Option<Digest> {
+	let policy = object
+		.policies
+		.iter()
+		.find(|p| p.id == T::UniquePolicyPredicate::get())?;
+
+	Some(policy.params.as_slice().try_into().ok()?)
 }

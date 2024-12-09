@@ -94,6 +94,20 @@ impl AsRef<[u8]> for Digest {
 	}
 }
 
+pub struct InvalidDigestLength;
+
+impl TryFrom<&[u8]> for Digest {
+	type Error = InvalidDigestLength;
+
+	fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+		if value.len() != Self::SIZE {
+			Err(InvalidDigestLength)
+		} else {
+			Ok(Self(value.try_into().expect("checked length")))
+		}
+	}
+}
+
 impl Debug for Digest {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		write!(f, "0x{}", hex::encode(self.0))

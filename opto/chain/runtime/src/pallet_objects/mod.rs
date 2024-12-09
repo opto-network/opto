@@ -120,6 +120,9 @@ pub mod pallet {
 		type NoncePolicyPredicate: Get<PredicateId>;
 
 		#[pallet::no_default]
+		type UniquePolicyPredicate: Get<PredicateId>;
+
+		#[pallet::no_default]
 		type DefaultSignatureVerifyPredicate: Get<PredicateId>;
 	}
 
@@ -147,6 +150,11 @@ pub mod pallet {
 	#[pallet::getter(fn predicate)]
 	pub type Predicates<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, PredicateId, Vec<u8>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn unique)]
+	pub type Uniques<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, Digest, (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn vrf)]
@@ -218,6 +226,10 @@ pub mod pallet {
 		/// One or more of the policy predicates attached to objects involved in
 		/// the transition are not satisfied.
 		UnsatifiedPolicy(u8),
+
+		/// An attept to create an object with `UniquePolicyPredicate` that is
+		/// that is already taken by another object with the same unique param.
+		UniqueAlreadyExists,
 	}
 
 	/// The pallet's dispatchable extrinisicts.

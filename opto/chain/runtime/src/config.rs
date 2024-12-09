@@ -79,6 +79,9 @@ parameter_types! {
 	pub const NoncePolicyPredicate: PredicateId = PredicateId(101);
 
 	/// Defined in the standard predicate library.
+	pub const UniquePolicyPredicate: PredicateId = PredicateId(102);
+
+	/// Defined in the standard predicate library.
 	pub const SignatureVerifyPredicate: PredicateId = PredicateId(201);
 }
 
@@ -100,5 +103,6 @@ impl pallet_objects::Config for Runtime {
 	/// if the unlock expression is Sr25519(signer).
 	type DefaultSignatureVerifyPredicate = SignatureVerifyPredicate;
 	type NoncePolicyPredicate = NoncePolicyPredicate;
+	type UniquePolicyPredicate = UniquePolicyPredicate;
 	type VaultAccount = VaultAccount;
 }
