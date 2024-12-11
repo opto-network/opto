@@ -19,7 +19,7 @@
 use {
 	crate::{ensure, utils::*},
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 	repr::AsObject,
 	scale::Decode,
 };
@@ -35,6 +35,12 @@ pub fn coin(
 	ensure!(is_only_policy_of_this_type(&ctx));
 	ensure!((1..=16).contains(&params.len()));
 	ensure!(u64::decode(&mut ctx.object.data.as_slice()).is_ok());
+
+	if ctx.location == Location::Input {
+		// if the coin is an input, then it should be valid because it must have
+		// passed all the checks in the previous state when it was an output.
+		return true;
+	}
 
 	let Ok(input_balance) = total_balance(&ctx, &transition.inputs, params)
 	else {

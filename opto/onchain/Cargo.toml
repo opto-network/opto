@@ -11,54 +11,19 @@ readme.workspace = true
 publish.workspace = true
 description = "Opto Onchain SDK"
 
-[dependencies]
-macros = { path = "./macros", package = "opto-onchain-macros" }
-opto-core = { path = "../core", default-features = false }
-
 [features]
-default = []
+default = ["stdpred", "macros"]
 std = []
-build = [
-  "std",
-  "cargo",
-  "cargo-util",
-  "nanoid",
-  "anyhow",
-  "walkdir",
-  "proc-macro2",
-  "integer-encoding",
-  "serde",
-  "cid",
-  "multihash",
-  "libipld",
-  "syn",
-  "serde_ipld_dagcbor",
-]
+build = ["std", "opto-onchain-builder"]
+stdpred = ["opto-stdpred"]
+macros = ["opto-onchain-macros"]
+optimize = ["std", "opto-onchain-builder/optimize"]
 
-optimize = ["binaryen"]
+[dependencies]
+opto-onchain-macros = { path = "./macros", optional = true }
+opto-core = { path = "../core", default-features = false }
+opto-stdpred = { path = "../stdpred", default-features = false, optional = true }
+
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-syn = { version = "2.0", features = [
-  "full",
-  "extra-traits",
-  "visit",
-], optional = true }
-cargo = { version = "0.82", optional = true }
-cargo-util = { version = "0.2.14", optional = true }
-nanoid = { version = "0.4", optional = true }
-anyhow = { version = "1.0", optional = true }
-walkdir = { version = "2", optional = true }
-proc-macro2 = { version = "1.0", optional = true }
-integer-encoding = { workspace = true, optional = true }
-serde = { version = "1.0", features = [
-  "derive",
-  "alloc",
-], default-features = false, optional = true }
-cid = { workspace = true, default-features = false, optional = true }
-multihash = { workspace = true, optional = true }
-libipld = { version = "0.16", features = [
-  "dag-cbor",
-  "derive",
-], optional = true }
-serde_ipld_dagcbor = { version = "0.6", default-features = false, optional = true }
-binaryen = { version = "0.13", optional = true }
+opto-onchain-builder = { path = "./builder", optional = true }

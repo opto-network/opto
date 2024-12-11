@@ -96,18 +96,18 @@ pub fn attach_syscalls<'e, E: Environment + 'e>(
 	let vrf_at = Func::wrap(
 		store.as_context_mut(),
 		|caller: Caller<'_, &'e E>, block: u32| {
-			return to_tuple(&caller.data().vrf_at(block).unwrap_or(Digest::ZERO));
+			to_tuple(&caller.data().vrf_at(block).unwrap_or(Digest::ZERO))
 		},
 	);
 
 	let time_at = Func::wrap(
 		store.as_context_mut(),
 		|caller: Caller<'_, &'e E>, block: u32| {
-			return caller
+			caller
 				.data()
 				.time_at(block)
 				.unwrap_or(Duration::ZERO)
-				.as_secs() as u32;
+				.as_secs() as u32
 		},
 	);
 

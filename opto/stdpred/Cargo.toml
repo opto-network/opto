@@ -17,19 +17,12 @@ offchain = ["subxt-signer"]
 
 [dependencies]
 opto-core = { path = "../core", default-features = false }
-opto-onchain = { path = "../onchain", default-features = false }
+opto-onchain-macros = { path = "../onchain/macros" }
 
 scale.workspace = true
 blake2.workspace = true
 ed25519-dalek.workspace = true
 schnorrkel.workspace = true
-ark-serialize.workspace = true
-ark-ec.workspace = true
-ark-ff.workspace = true
-ark-groth16.workspace = true
-ark-bn254.workspace = true
-sha2.workspace = true
-num-bigint.workspace = true
 cid.workspace = true
 
 subxt-signer = { version = "0.38", optional = true }
@@ -40,6 +33,4 @@ hex-literal = "0.4"
 hex = "0.4"
 
 [build-dependencies]
-opto-onchain = { path = "../onchain", default-features = false, features = [
-  "build",
-] }
+opto-onchain-builder = { path = "../onchain/builder" }

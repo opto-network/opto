@@ -1,4 +1,4 @@
-use {opto_core::*, opto_onchain::predicate};
+use {opto_core::*, opto_onchain_macros::predicate};
 
 /// Constant
 ///

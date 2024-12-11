@@ -92,5 +92,5 @@ fn uniqueness<T: Config<I>, I: 'static>(object: &Object) -> Option<Digest> {
 		.iter()
 		.find(|p| p.id == T::UniquePolicyPredicate::get())?;
 
-	Some(policy.params.as_slice().try_into().ok()?)
+	policy.params.as_slice().try_into().ok()
 }

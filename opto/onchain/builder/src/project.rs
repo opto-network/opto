@@ -91,7 +91,10 @@ fn find_all_predicate_ids(project_dir: &str) -> Vec<u32> {
 		let path = entry.path();
 		if path.is_file() && path.extension().unwrap() == "rs" {
 			let file_contents = std::fs::read_to_string(path).unwrap();
-			let ast = syn::parse_file(&file_contents).unwrap();
+			let Ok(ast) = syn::parse_file(&file_contents) else {
+				continue;
+			};
+
 			let mut v = AttribVisitor::default();
 			v.visit_file(&ast);
 			for id in v.ids.into_iter() {

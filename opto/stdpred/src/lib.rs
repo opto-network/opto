@@ -36,33 +36,38 @@ pub fn native_impl_factory<E: Environment + 'static>(
 ) -> Result<opto_core::eval::PredicateFunctor<E>, PredicateNotFound> {
 	Ok(alloc::boxed::Box::new(match pred.id {
 		// util
-		util::ids::constant => util::constant,
-		util::ids::nonce => util::nonce,
+		ids::CONSTANT => util::constant,
+		ids::NONCE => util::nonce,
+		ids::UNIQUE => util::unique,
 
 		// crypto
-		crypto::ids::sr25519 => crypto::sr25519,
-		crypto::ids::blake2b_256 => crypto::blake2b_256,
+		ids::SR25519 => crypto::sr25519,
+		ids::BLAKE2B_256 => crypto::blake2b_256,
 
 		// intents
-		intent::ids::output => intent::output,
-		intent::ids::ephemeral => intent::ephemeral,
-		intent::ids::input => intent::input,
+		ids::OUTPUT => intent::output,
+		ids::EPHEMERAL => intent::ephemeral,
+		ids::INPUT => intent::input,
 
 		// env
-		env::ids::before_time => env::before_time,
-		env::ids::before_block => env::before_block,
-		env::ids::after_time => env::after_time,
-		env::ids::after_block => env::after_block,
+		ids::BEFORE_TIME => env::before_time,
+		ids::BEFORE_BLOCK => env::before_block,
+		ids::AFTER_TIME => env::after_time,
+		ids::AFTER_BLOCK => env::after_block,
 
 		// meta
-		meta::ids::ipfs => meta::ipfs,
-		meta::ids::p2ptopic => meta::p2ptopic,
-		meta::ids::multiaddr => meta::multiaddr,
-		meta::ids::memo => meta::memo,
+		ids::IPFS => meta::ipfs,
+		ids::P2PTOPIC => meta::p2ptopic,
+		ids::MULTIADDR => meta::multiaddr,
+		ids::MEMO => meta::memo,
 
 		// economy
-		asset::ids::coin => asset::coin,
+		ids::COIN => asset::coin,
 
 		_ => return Err(PredicateNotFound),
 	}))
+}
+
+pub mod ids {
+	opto_onchain_macros::predicates_index!(core_crate = ::opto_core);
 }

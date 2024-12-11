@@ -42,3 +42,7 @@ pub fn is_only_policy_of_this_type(
 		.count()
 		== 1
 }
+
+pub fn is_the_only_policy(ctx: &Context<'_, impl Environment>) -> bool {
+	is_policy(ctx) && ctx.object.policies.len() == 1
+}

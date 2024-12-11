@@ -1,7 +1,7 @@
 use {
 	crate::{ensure, utils::is_ephemeral},
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 };
 
 /// This predicate is used to unlock objects with a hash preimage.

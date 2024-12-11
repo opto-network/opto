@@ -22,7 +22,7 @@
 use {
 	crate::utils::is_ephemeral,
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 	schnorrkel::{PublicKey, Signature, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH},
 };
 
@@ -120,7 +120,7 @@ impl TransitionExt for Transition<Compact> {
 	type Error = schnorrkel::SignatureError;
 
 	fn sign_with_sr25519(&mut self, signer: &Keypair) {
-		let predicate_id = sr25519_id;
+		let predicate_id = crate::ids::SR25519;
 		let pubkey = signer.public_key();
 		let predicate = opto_core::Predicate {
 			id: predicate_id,
@@ -140,7 +140,7 @@ impl TransitionExt for Transition<Compact> {
 		let signature_object = Object {
 			policies: alloc::vec![predicate],
 			unlock: Predicate {
-				id: crate::util::constant::constant_id,
+				id: crate::ids::CONSTANT,
 				params: [1].to_vec(),
 			}
 			.into(),

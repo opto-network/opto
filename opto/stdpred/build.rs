@@ -1,3 +1,3 @@
 fn main() {
-	opto_onchain::builder::build_in_release();
+	opto_onchain_builder::build_in_release();
 }

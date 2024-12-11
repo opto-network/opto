@@ -23,7 +23,6 @@ use {
 	Eq,
 	PartialOrd,
 	Ord,
-	Debug,
 	Encode,
 	Decode,
 	TypeInfo,
@@ -35,6 +34,12 @@ use {
 )]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PredicateId(pub u32);
+
+impl core::fmt::Debug for PredicateId {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		write!(f, "PredicateId({})", self.0)
+	}
+}
 
 /// A description of a predicate.
 ///
@@ -51,6 +56,8 @@ pub struct PredicateId(pub u32);
 	Clone,
 	PartialEq,
 	Eq,
+	PartialOrd,
+	Ord,
 	Encode,
 	Decode,
 	TypeInfo,

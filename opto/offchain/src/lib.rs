@@ -1,19 +1,3 @@
-mod client;
-mod transition;
-
-mod model {
-	include!(concat!(env!("OUT_DIR"), "/model.rs"));
-}
-
-pub use {
-	client::*,
-	futures,
-	model::api::*,
-	opto_stdpred as stdpred,
-	subxt::utils::AccountId32,
-	subxt_signer as signer,
-	transition::*,
-};
 use {
 	core::future::Future,
 	futures::Stream,
@@ -25,6 +9,25 @@ use {
 		PredicateId,
 		Transition,
 	},
+};
+
+mod client;
+mod ext;
+mod transition;
+
+mod model {
+	include!(concat!(env!("OUT_DIR"), "/model.rs"));
+}
+
+pub use {
+	client::*,
+	ext::*,
+	futures,
+	model::api::*,
+	opto_stdpred as stdpred,
+	subxt::utils::AccountId32,
+	subxt_signer as signer,
+	transition::*,
 };
 
 type AssetId = u32;
@@ -93,6 +96,14 @@ pub trait MutatingClient {
 		&self,
 		keypair: &crate::signer::sr25519::Keypair,
 		transitions: Vec<Transition<Compact>>,
+	) -> impl Future<Output = Result<(), Self::Error>>;
+
+	/// Installs a new predicate or a group or predicates.
+	/// This function accepts either a WASAM binary or a CAR file.
+	fn install(
+		&self,
+		keypair: &crate::signer::sr25519::Keypair,
+		wasm_or_car: Vec<u8>,
 	) -> impl Future<Output = Result<(), Self::Error>>;
 
 	/// Transfer an asset.sssss

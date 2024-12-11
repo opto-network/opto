@@ -293,6 +293,40 @@ impl MutatingClient for Client {
 		}
 	}
 
+	async fn install(
+		&self,
+		signer: &crate::signer::sr25519::Keypair,
+		wasm_or_car: Vec<u8>,
+	) -> Result<(), Self::Error> {
+		let tx = self
+			.tx()
+			.sign_and_submit_then_watch_default(
+				&tx().objects().install(wasm_or_car),
+				signer,
+			)
+			.await?;
+
+		let tx_in_block = tx.wait_for_finalized().await?;
+		for event in tx_in_block.fetch_events().await?.iter() {
+			match event?.as_root_event::<crate::Event>()? {
+				Event::System(SystemEvent::ExtrinsicSuccess { .. }) => {
+					return Ok(());
+				}
+				Event::System(SystemEvent::ExtrinsicFailed {
+					dispatch_error, ..
+				}) => {
+					return Err(subxt::Error::Other(format!(
+						"Transaction failed: {:?}",
+						dispatch_error
+					)));
+				}
+				_ => continue,
+			}
+		}
+
+		Ok(())
+	}
+
 	async fn asset_transfer(
 		&self,
 		signer: &crate::signer::sr25519::Keypair,

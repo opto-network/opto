@@ -1,7 +1,7 @@
 use {
 	crate::utils::is_unlock,
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 	scale::Decode,
 };
 

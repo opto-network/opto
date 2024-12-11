@@ -1,7 +1,12 @@
 use {
-	crate::utils::{is_ephemeral, is_policy},
+	crate::utils::{
+		is_ephemeral,
+		is_only_policy_of_this_type,
+		is_policy,
+		is_the_only_policy,
+	},
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 };
 
 /// Unique
@@ -24,13 +29,8 @@ pub fn unique(
 	ensure!(is_policy(&ctx));
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(params.len() == Digest::SIZE);
+	ensure!(is_only_policy_of_this_type(&ctx));
+	ensure!(!is_the_only_policy(&ctx));
 
-	// there can be only one unique tag attached to an object at a time
-	ctx
-		.object
-		.policies
-		.iter()
-		.filter(|p| p.id == ctx.predicate_id())
-		.count()
-		== 1
+	true
 }

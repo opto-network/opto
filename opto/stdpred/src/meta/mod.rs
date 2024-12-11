@@ -2,7 +2,7 @@
 //! metadata for offhain processing. They are used to describe things like the
 //! details of a job or the contents of someting represented on-chain.
 
-use {crate::utils::*, opto_core::*, opto_onchain::predicate};
+use {crate::utils::*, opto_core::*, opto_onchain_macros::predicate};
 
 /// A blob stored on IPFS.
 #[predicate(id = 500, core_crate = opto_core)]
@@ -54,13 +54,4 @@ pub fn memo(
 	ensure!(is_policy(&ctx));
 	ensure!(len_range.contains(&params.len()));
 	true
-}
-
-pub mod ids {
-	pub use super::{
-		ipfs_id as ipfs,
-		memo_id as memo,
-		multiaddr_id as multiaddr,
-		p2ptopic_id as p2ptopic,
-	};
 }

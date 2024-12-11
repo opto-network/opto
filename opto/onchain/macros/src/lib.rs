@@ -1,14 +1,19 @@
+#![allow(static_mut_refs)]
+
 use {
 	proc_macro::{TokenStream, TokenTree},
 	proc_macro2::{Literal, Span},
 	quote::quote,
-	std::collections::{HashMap, VecDeque},
+	std::collections::{BTreeMap, HashMap, VecDeque},
 	syn::parse_macro_input,
 	valid::validate_predicate_signature,
 };
 
 mod gen;
 mod valid;
+
+static mut INDEX: BTreeMap<String, u32> = BTreeMap::new();
+static mut INDEG_GENERATED: bool = false;
 
 #[proc_macro_attribute]
 pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
@@ -30,8 +35,6 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 
 	let item_fn_name = &item.sig.ident;
 	let pred_id = format!("pred_{}", id);
-	let const_name =
-		syn::Ident::new(&format!("{item_fn_name}_id"), Span::call_site());
 
 	let cfg_target = syn::Ident::new(pred_id.as_str(), Span::call_site());
 	let context_expand = gen::predicate_context(&crate_name);
@@ -40,11 +43,17 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 		.replace("#core_crate", crate_name.to_string().as_str());
 	let env_code: proc_macro2::TokenStream = env_code.parse().unwrap();
 
+	if unsafe { INDEG_GENERATED } {
+		panic!(
+			"predicates_index!() must be called after all #[predicate] declarations"
+		);
+	}
+
+	// keep track of all registered predicates
+	unsafe { INDEX.insert(item_fn_name.to_string().to_uppercase(), id_u32) };
+
 	let output = quote! {
 		#item
-
-		#[allow(non_upper_case_globals)]
-		pub const #const_name: ::#crate_name::PredicateId = ::#crate_name::PredicateId(#id_u32);
 
 		#[cfg(#cfg_target)]
 		mod __abi_impl {
@@ -78,6 +87,34 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 	output.into()
 }
 
+#[proc_macro]
+pub fn predicates_index(args: TokenStream) -> TokenStream {
+	let attribs = parse_attributes(args);
+	let crate_name = attribs
+		.get("core_crate")
+		.map(|s| s.as_str())
+		.unwrap_or("opto");
+	let crate_name = syn::Ident::new(crate_name, Span::call_site());
+
+	let mut output = vec![];
+	for (name, id) in unsafe { INDEX.iter() } {
+		let name = syn::Ident::new(name, Span::call_site());
+		let id_lit = Literal::u32_suffixed(*id);
+		let item = quote! {
+			pub const #name: #crate_name::PredicateId =
+				#crate_name::PredicateId(#id_lit);
+		};
+		output.push(item);
+	}
+
+	unsafe { INDEG_GENERATED = true };
+
+	quote! {
+		#(#output)*
+	}
+	.into()
+}
+
 fn parse_attributes(args: TokenStream) -> HashMap<String, String> {
 	let mut remaining: VecDeque<_> = args.into_iter().collect();
 	let mut kv_list = Vec::new();
@@ -94,14 +131,16 @@ fn parse_attributes(args: TokenStream) -> HashMap<String, String> {
 		}
 	}
 
-	kv_list.push(this_kv);
-	kv_list.into_iter().map(parse_key_value).collect()
+	if !this_kv.is_empty() {
+		kv_list.push(this_kv);
+	}
+	kv_list.into_iter().filter_map(parse_key_value).collect()
 }
 
-fn parse_key_value(kv: Vec<TokenTree>) -> (String, String) {
+fn parse_key_value(kv: Vec<TokenTree>) -> Option<(String, String)> {
 	let mut kv = kv.into_iter();
-	let key = kv.next().unwrap();
-	let val = kv.next().unwrap();
+	let key = kv.next()?;
+	let val = kv.next()?;
 
-	(key.to_string(), val.to_string())
+	Some((key.to_string(), val.to_string()))
 }

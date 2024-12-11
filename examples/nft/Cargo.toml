@@ -1,5 +1,5 @@
 [package]
-name = "example-sp1"
+name = "example-nft"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -9,26 +9,27 @@ homepage.workspace = true
 repository.workspace = true
 readme.workspace = true
 publish = false
-description = "Opto SDK Examples - SP1 ZK Proofs"
+description = "Opto SDK Examples - NFT"
+
 
 [lib]
-name = "example_sp1_predicate"
+name = "example_nft_predicate"
 path = "src/predicate.rs"
 required-features = ["onchain"]
 
 [[bin]]
-name = "example_sp1_solver"
+name = "example_nft_solver"
 path = "src/solver.rs"
 required-features = ["offchain"]
 
 [[bin]]
-name = "example_sp1_patron"
+name = "example_nft_patron"
 path = "src/patron.rs"
 required-features = ["offchain"]
 
 [features]
 onchain = ["opto/onchain-sdk"]
-offchain = ["opto/offchain-sdk", "tokio", "anyhow"]
+offchain = ["opto/offchain-sdk", "tokio", "anyhow", "onchain"]
 
 [dependencies]
 opto = { path = "../../opto", default-features = false }

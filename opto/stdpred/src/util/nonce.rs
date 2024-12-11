@@ -2,7 +2,7 @@ use {
 	crate::utils::*,
 	blake2::{digest::consts::U8, Digest},
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 };
 
 // u64 is 8 bytes
@@ -18,6 +18,7 @@ pub fn nonce(
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(param.len() == size_of::<u64>());
 	ensure!(is_only_policy_of_this_type(&ctx));
+	ensure!(!is_the_only_policy(&ctx));
 
 	match ctx.location {
 		Location::Input => true,
@@ -110,7 +111,7 @@ impl TransitionExt for Transition<Expanded> {
 			if let Some(nonce_policy) = object
 				.policies
 				.iter_mut()
-				.find(|p| p.id == crate::util::nonce::nonce_id)
+				.find(|p| p.id == crate::ids::NONCE)
 			{
 				let nonce =
 					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
@@ -141,7 +142,7 @@ impl TransitionExt for Transition<Compact> {
 			if let Some(nonce_policy) = object
 				.policies
 				.iter_mut()
-				.find(|p| p.id == crate::util::nonce::nonce_id)
+				.find(|p| p.id == crate::ids::NONCE)
 			{
 				let nonce =
 					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);

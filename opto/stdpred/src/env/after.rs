@@ -1,4 +1,9 @@
-use {core::time::Duration, opto_core::*, opto_onchain::*, scale::Decode};
+use {
+	core::time::Duration,
+	opto_core::*,
+	opto_onchain_macros::*,
+	scale::Decode,
+};
 
 /// Predicate that checks if the current time is on or after a given timestamp.
 ///

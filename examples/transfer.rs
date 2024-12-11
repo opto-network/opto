@@ -62,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
 	let output = opto::Object {
 		policies: wrapped.policies,
 		unlock: opto::Predicate {
-			id: opto::stdpred::crypto::sr25519::sr25519_id,
+			id: opto::stdpred::ids::SR25519,
 			params: charlie.public_key().0.to_vec(),
 		}
 		.into(),

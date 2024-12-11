@@ -1,7 +1,7 @@
 use {
 	core::time::Duration,
 	opto_core::*,
-	opto_onchain::predicate,
+	opto_onchain_macros::predicate,
 	scale::Decode,
 };
 

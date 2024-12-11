@@ -6,7 +6,7 @@ use {
 		ops::Deref,
 	},
 	derive_more::derive::From,
-	scale::{Decode, Encode, MaxEncodedLen},
+	scale::{ConstEncodedLen, Decode, Encode, MaxEncodedLen},
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,
@@ -34,6 +34,7 @@ pub type Hasher<Size = DefaultOutputSize> = blake2::Blake2b<Size>;
 )]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Digest([u8; 32]);
+impl ConstEncodedLen for Digest {}
 
 pub trait Hashable: Encode {
 	fn digest(&self) -> Digest {
@@ -74,6 +75,15 @@ impl Digest {
 		Self(hasher.finalize().into())
 	}
 
+	pub fn compute_concat(data: &[&[u8]]) -> Self {
+		use blake2::Digest as _;
+		let mut hasher = Self::hasher();
+		for d in data {
+			hasher.update(d);
+		}
+		Self(hasher.finalize().into())
+	}
+
 	/// Get an instance of the default hasher
 	pub fn hasher() -> Hasher {
 		<Hasher as blake2::Digest>::new()
@@ -94,6 +104,7 @@ impl AsRef<[u8]> for Digest {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvalidDigestLength;
 
 impl TryFrom<&[u8]> for Digest {
