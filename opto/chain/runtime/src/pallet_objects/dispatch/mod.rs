@@ -60,16 +60,17 @@ fn produce_output<T: Config<I>, I: 'static>(
 		return Err(Error::<T, I>::TooManyPolicies);
 	}
 
+	let digest = object.digest();
+
 	// uphold the uniqueness policy
 	if let Some(uniqueness) = uniqueness::<T, I>(&object) {
 		if Uniques::<T, I>::contains_key(uniqueness) {
 			return Err(Error::<T, I>::UniqueAlreadyExists);
 		}
 
-		Uniques::<T, I>::insert(uniqueness, ());
+		Uniques::<T, I>::insert(uniqueness, digest);
 	}
 
-	let digest = object.digest();
 	let instance_count = Objects::<T, I>::get(digest)
 		.map_or(0, |o| o.instance_count)
 		.saturating_add(1);

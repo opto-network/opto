@@ -38,12 +38,22 @@ pub fn nonce(
 				// H(inputs_hash_64 || output_index)
 				let inputs_hash: [u8; 8] = hasher.finalize().into();
 				for (ix, object) in transition.outputs.iter().enumerate() {
-					if object.policies.iter().any(|p| p.id == ctx.predicate_id()) {
-						let actual_nonce = u64::from_le_bytes(param.try_into().unwrap());
+					if let Some(pred) =
+						object.policies.iter().find(|p| p.id == ctx.predicate_id())
+					{
+						let Ok(u64_bytes) = pred.params.as_slice().try_into() else {
+							return false;
+						};
+
+						let actual_nonce = u64::from_le_bytes(u64_bytes);
+
 						let expected_nonce = hash_concat(&[
 							&inputs_hash,
 							(ix as u64).to_le_bytes().as_slice(),
+							object.unlock.digest().as_slice(),
+							&object.data,
 						]);
+
 						ensure!(actual_nonce == expected_nonce);
 					}
 				}
@@ -80,74 +90,4 @@ fn hash_concat(elems: &[&[u8]]) -> u64 {
 		hasher.update(elem);
 	}
 	u64::from_le_bytes(hasher.finalize().into())
-}
-
-#[cfg(feature = "offchain")]
-pub trait TransitionExt
-where
-	Self: Sized,
-{
-	fn set_nonces(&mut self);
-}
-
-#[cfg(feature = "offchain")]
-impl TransitionExt for Transition<Expanded> {
-	fn set_nonces(&mut self) {
-		fn hash_concat(elems: &[&[u8]]) -> u64 {
-			let mut hasher = Hasher::default();
-			for elem in elems {
-				hasher.update(elem);
-			}
-			u64::from_le_bytes(hasher.finalize().into())
-		}
-
-		let mut hasher = Hasher::default();
-		for input in self.inputs.iter() {
-			hasher.update(input.digest());
-		}
-
-		let inputs_hash: [u8; 8] = hasher.finalize().into();
-		for (ix, object) in self.outputs.iter_mut().enumerate() {
-			if let Some(nonce_policy) = object
-				.policies
-				.iter_mut()
-				.find(|p| p.id == crate::ids::NONCE)
-			{
-				let nonce =
-					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
-				nonce_policy.params = nonce.to_le_bytes().to_vec();
-			}
-		}
-	}
-}
-
-#[cfg(feature = "offchain")]
-impl TransitionExt for Transition<Compact> {
-	fn set_nonces(&mut self) {
-		fn hash_concat(elems: &[&[u8]]) -> u64 {
-			let mut hasher = Hasher::default();
-			for elem in elems {
-				hasher.update(elem);
-			}
-			u64::from_le_bytes(hasher.finalize().into())
-		}
-
-		let mut hasher = Hasher::default();
-		for input in self.inputs.iter() {
-			hasher.update(input);
-		}
-
-		let inputs_hash: [u8; 8] = hasher.finalize().into();
-		for (ix, object) in self.outputs.iter_mut().enumerate() {
-			if let Some(nonce_policy) = object
-				.policies
-				.iter_mut()
-				.find(|p| p.id == crate::ids::NONCE)
-			{
-				let nonce =
-					hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
-				nonce_policy.params = nonce.to_le_bytes().to_vec();
-			}
-		}
-	}
 }

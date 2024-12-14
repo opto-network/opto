@@ -3,11 +3,9 @@
 //! the new owner.
 
 use opto::{
+	self,
+	ext::CompactTransitionExt,
 	repr::Compact,
-	stdpred::{
-		crypto::sr25519::TransitionExt as _,
-		util::nonce::TransitionExt as _,
-	},
 	Hashable,
 	MutatingClient,
 	ReadOnlyClient,
@@ -73,10 +71,9 @@ async fn main() -> anyhow::Result<()> {
 		inputs: vec![wrapped_digest],
 		ephemerals: vec![],
 		outputs: vec![output],
-	};
-
-	transition.set_nonces();
-	transition.sign_with_sr25519(&alice);
+	}
+	.set_nonces()
+	.sign(&alice);
 
 	let output_digest = transition.outputs[0].digest();
 

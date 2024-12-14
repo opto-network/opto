@@ -13,7 +13,6 @@ description = "Opto Standard Predicates Library"
 
 [features]
 default = []
-offchain = ["subxt-signer"]
 
 [dependencies]
 opto-core = { path = "../core", default-features = false }
@@ -24,8 +23,6 @@ blake2.workspace = true
 ed25519-dalek.workspace = true
 schnorrkel.workspace = true
 cid.workspace = true
-
-subxt-signer = { version = "0.38", optional = true }
 
 [dev-dependencies]
 opto-core = { path = "../core", default-features = false, features = ["test"] }

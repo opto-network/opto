@@ -141,26 +141,35 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(_);
 
+	/// Stores all active objects that exist in the system.
 	#[pallet::storage]
 	#[pallet::getter(fn object)]
 	pub type Objects<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, Digest, StoredObject, OptionQuery>;
 
+	/// Stores the executable WASM code for all installed predicates.
 	#[pallet::storage]
 	#[pallet::getter(fn predicate)]
 	pub type Predicates<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, PredicateId, Vec<u8>, OptionQuery>;
 
+	/// Stores all unique reservations along with the hash of the object
+	/// that is using the unique reservation. See the `UniquePolicyPredicate`
+	/// and `unique` predicate in the standard predicate library for more
+	/// information.
 	#[pallet::storage]
 	#[pallet::getter(fn unique)]
 	pub type Uniques<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, Digest, (), OptionQuery>;
+		StorageMap<_, Blake2_128Concat, Digest, Digest, OptionQuery>;
 
+	/// Stores the VRF value for a number of recent blocks. This number is
+	/// configurable through the `HistoryLength` configuration parameter.
 	#[pallet::storage]
 	#[pallet::getter(fn vrf)]
 	pub type Vrf<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, u32, Digest, OptionQuery>;
 
+	/// Stores the timestamps of the last `HistoryLength` blocks.
 	#[pallet::storage]
 	#[pallet::getter(fn timestamp)]
 	pub type Timestamp<T: Config<I>, I: 'static = ()> =

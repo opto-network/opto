@@ -10,10 +10,15 @@ fn main() {
 			.try_into()
 			.expect("runtime metadata conversion failed");
 
+	let mut generator = CodegenBuilder::new();
+	generator.set_target_module(syn::parse_quote!(
+		pub mod model {}
+	));
+
 	let mut code: File = parse2(
-		CodegenBuilder::new()
+		generator
 			.generate(metadata)
-			.expect("failed to generate client model from metadata"),
+			.expect("metadata codegen failed"),
 	)
 	.expect("metadata codegen generated invalid code");
 

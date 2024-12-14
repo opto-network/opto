@@ -4,7 +4,7 @@ members = ["opto", "opto/stdpred", "examples", "examples/sp1", "examples/nft"]
 
 [workspace.package]
 version = "0.1.0"
-rust-version = "1.81"
+rust-version = "1.83"
 edition = "2021"
 authors = ["Karim Agha"]
 license = "MIT"

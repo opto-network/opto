@@ -119,7 +119,7 @@ pub fn nft_mint(
 	ensure!(is_policy(&ctx));
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(is_only_policy_of_this_type(&ctx));
-	ensure!(params.len() == Digest::max_encoded_len());
+	ensure!(params.len() == Digest::SIZE);
 
 	ensure!(uniqueness_equals(
 		&ctx,

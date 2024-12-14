@@ -11,33 +11,38 @@ readme.workspace = true
 publish = false
 description = "Opto SDK Examples - NFT"
 
-
 [lib]
-name = "example_nft_predicate"
-path = "src/predicate.rs"
+name = "nft"
 required-features = ["onchain"]
 
 [[bin]]
-name = "example_nft_solver"
-path = "src/solver.rs"
+name = "nft-solver"
+path = "bin/solver.rs"
 required-features = ["offchain"]
 
 [[bin]]
-name = "example_nft_patron"
-path = "src/patron.rs"
+name = "nft-patron"
+path = "bin/patron.rs"
 required-features = ["offchain"]
 
 [features]
 onchain = ["opto/onchain-sdk"]
-offchain = ["opto/offchain-sdk", "tokio", "anyhow", "onchain"]
+offchain = [
+  "opto/offchain-sdk",
+  "opto/std",
+  "tokio",
+  "anyhow",
+  "onchain",
+  "thiserror",
+]
 
 [dependencies]
 opto = { path = "../../opto", default-features = false }
 
 scale = { workspace = true }
-
 tokio = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 
 [build-dependencies]
 opto = { path = "../../opto", features = ["build"], default-features = false }

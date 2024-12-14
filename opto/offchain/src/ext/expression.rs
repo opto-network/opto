@@ -6,6 +6,7 @@ use {
 pub trait ExpressionExt {
 	fn signature(by: &AccountId32) -> Expression;
 	fn preimage(preimage: &[u8]) -> Expression;
+	fn constant(value: bool) -> Expression;
 }
 
 impl ExpressionExt for Expression {
@@ -21,6 +22,14 @@ impl ExpressionExt for Expression {
 		Predicate {
 			id: opto_stdpred::ids::BLAKE2B_256,
 			params: Digest::compute(preimage).to_vec(),
+		}
+		.into()
+	}
+
+	fn constant(value: bool) -> Expression {
+		Predicate {
+			id: opto_stdpred::ids::CONSTANT,
+			params: vec![value as u8],
 		}
 		.into()
 	}
