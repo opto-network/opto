@@ -21,6 +21,8 @@ mod mutable;
 mod read;
 mod stream;
 
+pub use futures;
+
 type AssetId = u32;
 type Balance = u64;
 

@@ -58,3 +58,4 @@ serde_json = { version = "1.0", features = ["alloc"], default-features = false }
 log = { version = "0.4" }
 core2 = { version = "0.4", default-features = false }
 unsigned-varint = { version = "0.8", default-features = false }
+rand = { version = "0.8" }

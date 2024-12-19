@@ -2,6 +2,7 @@ use {
 	ext::*,
 	nft::Mint,
 	opto::*,
+	rand::random,
 	signer::sr25519::dev::{self, alice, charlie},
 };
 
@@ -23,9 +24,11 @@ async fn main() -> anyhow::Result<()> {
 
 	println!("Mint object: {mint:#?}");
 
-	println!("Minting {NFT_NAME} #123 for charlie...");
+	let nftid = random::<u16>().to_string();
+
+	println!("Minting {NFT_NAME} #{nftid} for charlie...");
 	let tx = mint
-		.issue(Digest::compute(b"123"))
+		.issue(Digest::compute(nftid.as_bytes()))
 		.recipient(&charlie().public_key().to_account_id())
 		.data(b"hair=1,shirt=28,eyes=981,ears=82".to_vec())
 		.transition()
@@ -41,9 +44,10 @@ async fn main() -> anyhow::Result<()> {
 		charlies_nft
 	);
 
-	println!("Minting {NFT_NAME} #456 for dave...");
+	let nftid = random::<u16>().to_string();
+	println!("Minting {NFT_NAME} #{nftid} for dave...");
 	let tx = mint
-		.issue(Digest::compute(b"456"))
+		.issue(Digest::compute(nftid.as_bytes()))
 		.recipient(&dev::dave().public_key().to_account_id())
 		.data(b"hair=1,shirt=28,eyes=981,ears=82".to_vec())
 		.transition()

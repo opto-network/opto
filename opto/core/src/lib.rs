@@ -9,6 +9,7 @@ pub mod eval;
 pub mod expression;
 pub mod object;
 pub mod predicate;
+pub mod query;
 pub mod repr;
 pub mod transition;
 
@@ -22,6 +23,7 @@ pub use {
 	expression::{Expression, Op},
 	object::Object,
 	predicate::{Predicate, PredicateId},
+	query::ObjectPattern,
 	repr::{Compact, Expanded},
 	scale as codec,
 	transition::Transition,

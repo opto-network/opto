@@ -34,15 +34,21 @@ offchain = [
   "anyhow",
   "onchain",
   "thiserror",
+  "rand",
 ]
 
 [dependencies]
 opto = { path = "../../opto", default-features = false }
 
-scale = { workspace = true }
+scale = { version = "3.6", features = [
+  "derive",
+  "max-encoded-len",
+], default-features = false, package = "parity-scale-codec" }
+
 tokio = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
 
 [build-dependencies]
 opto = { path = "../../opto", features = ["build"], default-features = false }

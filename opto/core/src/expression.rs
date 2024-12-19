@@ -6,7 +6,7 @@ use {
 	core::{
 		fmt::{Debug, Display},
 		hash::Hash,
-		ops::Not,
+		ops::{Index, Not},
 	},
 	scale::{Decode, Encode, EncodeLike, Output},
 	scale_info::{
@@ -209,6 +209,14 @@ impl<P: PartialEq> PartialEq for Expression<P> {
 impl<P: Hash> Hash for Expression<P> {
 	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
 		self.0.hash(state)
+	}
+}
+
+impl<P> Index<usize> for Expression<P> {
+	type Output = Op<P>;
+
+	fn index(&self, index: usize) -> &Self::Output {
+		&self.0[index]
 	}
 }
 
