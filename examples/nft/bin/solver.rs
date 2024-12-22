@@ -2,7 +2,14 @@ use {
 	nft::NftIdentity,
 	opto::{
 		futures::StreamExt,
-		query::{Capture, ObjectPattern, TransitionPattern},
+		pattern::{
+			Capture,
+			ObjectPattern,
+			ObjectsSetPattern,
+			PoliciesPattern,
+			TransitionPattern,
+		},
+		stdpred,
 		Client,
 		Digest,
 		Hashable,
@@ -27,23 +34,33 @@ async fn main() -> anyhow::Result<()> {
 	let interesting_nft = "BAYC'2025";
 	let interesting_mint = Digest::compute(interesting_nft.as_bytes());
 
-	let bayc_nft_pattern = TransitionPattern::default().output(
-		ObjectPattern::default().capture_policy(
-			nft::ids::NFT,
-			move |nft: nft::NftIdentity| nft.mint == interesting_mint,
-			Some("BaycNftIdentity"),
-		),
-	);
+	let bayc_nft_object = ObjectPattern::default() //
+		.policies(
+			PoliciesPattern::default()
+				.must_capture(
+					nft::ids::NFT,
+					move |nft: nft::NftIdentity| nft.mint == interesting_mint,
+					Some("BaycNftIdentity"),
+				)
+				.may_include(stdpred::ids::NONCE)
+				.exact(),
+		);
 
-	let mut observed_interesting_objects = HashMap::new();
+	let bayc_transition_pattern = TransitionPattern::default() //
+		.output(
+			ObjectsSetPattern::default() //
+				.must_include(bayc_nft_object.clone()),
+		);
+
+	let mut interesting_objects = HashMap::new();
 	while let Some(Ok(transition)) = stream.next().await {
-		for capture in bayc_nft_pattern.matches(&transition) {
+		for capture in bayc_transition_pattern.captures(&transition) {
 			if let (Some("BaycNftIdentity"), Capture::Policy(object, predicate)) =
 				capture
 			{
 				let identity = NftIdentity::decode(&mut predicate.params.as_slice())?;
 				println!("An interesting NFT was produced: {identity:#?}");
-				observed_interesting_objects.insert(object.digest(), object.clone());
+				interesting_objects.insert(object.digest(), object.clone());
 			}
 		}
 
@@ -51,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
 		if let Some(nft) = transition
 			.inputs
 			.iter()
-			.filter_map(|obj| observed_interesting_objects.remove(&obj.digest()))
+			.filter_map(|obj| interesting_objects.remove(&obj.digest()))
 			.next()
 		{
 			println!("An interesting NFT was consumed: {nft:?}");

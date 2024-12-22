@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
 		data: wrapped.data,
 	};
 
-	let mut transition = Transition::<Compact> {
+	let transition = Transition::<Compact> {
 		inputs: vec![wrapped_digest],
 		ephemerals: vec![],
 		outputs: vec![output],
