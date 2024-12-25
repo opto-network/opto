@@ -12,11 +12,15 @@ pub struct Hot {
 	fn_: HotCaptureFn,
 }
 
-impl private::Sealed for Hot {}
-
 impl Filter for Hot {
 	fn matches(&self, data: &[u8]) -> bool {
 		(self.fn_)(data)
+	}
+}
+
+impl core::fmt::Debug for Hot {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("<runtime-func>").finish()
 	}
 }
 
@@ -34,6 +38,18 @@ where
 
 				self(value)
 			}),
+		}
+	}
+}
+
+/// Matches any data without any condition.
+#[derive(Clone)]
+pub struct Anything;
+
+impl IntoFilter<Hot, Anything> for Anything {
+	fn into_filter(self) -> Hot {
+		Hot {
+			fn_: Rc::new(|_: &[u8]| true),
 		}
 	}
 }

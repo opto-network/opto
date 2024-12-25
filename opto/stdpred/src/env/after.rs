@@ -61,10 +61,16 @@ mod test {
 			outputs: vec![],
 		};
 
-		let mut env = StaticEnvironment::default();
-		env.block_number = 20;
-		env.times.insert(20, Duration::from_secs(4000)); // before unlock
-		env.times.insert(25, Duration::from_secs(6000)); // after unlock
+		let mut env = StaticEnvironment {
+			block_number: 20,
+			times: [
+				(20, Duration::from_secs(4000)), // before unlock
+				(25, Duration::from_secs(6000)), // after unlock
+			]
+			.into_iter()
+			.collect(),
+			..Default::default()
+		};
 
 		{
 			// this should fail because the time is before the unlock time
@@ -114,7 +120,26 @@ mod test {
 			outputs: vec![],
 		};
 
-		let mut env = StaticEnvironment::default();
+		let mut env = StaticEnvironment {
+			block_number: 20,
+			..Default::default()
+		};
+
+		{
+			// this should fail because the block no is lower than the unlock block
+			let evaluation = transition
+				.instantiate(native_impl_factory)
+				.unwrap()
+				.evaluate(&transition, &env);
+
+			assert_eq!(
+				evaluation,
+				Err(EvalError::UnlockNotSatisfied(
+					&transition.inputs[0],
+					Location::Input
+				))
+			);
+		}
 		env.block_number = 20;
 
 		{

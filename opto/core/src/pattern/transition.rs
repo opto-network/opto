@@ -51,13 +51,13 @@ impl<F: Filter> TransitionPattern<F> {
 		self
 	}
 
-	pub fn matches(&self, transition: &Transition) -> bool {
+	pub fn matches(&self, _transition: &Transition) -> bool {
 		todo!()
 	}
 
 	pub fn captures<'a, 'b>(
 		&'a self,
-		transition: &'b Transition,
+		_transition: &'b Transition,
 	) -> Vec<(Option<&'a str>, Capture<'b>)> {
 		todo!()
 	}

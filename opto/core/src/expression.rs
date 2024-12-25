@@ -382,6 +382,32 @@ impl<P> Expression<P> {
 		))
 	}
 
+	/// Joins two isomorphic expression tree by producing a new tree with each
+	/// predicate node being a tuple of the corresponding predicates in the input
+	/// trees.
+	pub fn zip<V>(
+		self,
+		other: Expression<V>,
+	) -> Result<Expression<(P, V)>, Error> {
+		if !self.is_isomorphic(&other) {
+			return Err(Error::NonIsomorphic);
+		}
+
+		Ok(Expression(
+			self
+				.into_iter()
+				.zip(other)
+				.map(|(op1, op2)| match (op1, op2) {
+					(Op::Predicate(p1), Op::Predicate(p2)) => Op::Predicate((p1, p2)),
+					(Op::And, Op::And) => Op::And,
+					(Op::Or, Op::Or) => Op::Or,
+					(Op::Not, Op::Not) => Op::Not,
+					_ => unreachable!("is_isomorphic should have caught this"),
+				})
+				.collect(),
+		))
+	}
+
 	/// Zips two expression trees together and applies a function to the
 	/// predicates at the same path in the trees.
 	///
@@ -389,13 +415,13 @@ impl<P> Expression<P> {
 	/// and the result is used to construct a new tree of the same shape.
 	///
 	/// This function fails if the trees have different shapes.
-	pub fn zip_with<V, F>(
+	pub fn zip_with<V, F, P2>(
 		self,
-		other: Expression<P>,
+		other: Expression<P2>,
 		f: F,
 	) -> Result<Expression<V>, Error>
 	where
-		F: Fn(P, P) -> V,
+		F: Fn(P, P2) -> V,
 	{
 		if !self.is_isomorphic(&other) {
 			return Err(Error::NonIsomorphic);
@@ -414,6 +440,67 @@ impl<P> Expression<P> {
 				})
 				.collect(),
 		))
+	}
+
+	/// Returns the Op at the root of the expression tree.
+	pub fn root(&self) -> &Op<P> {
+		&self.0[0]
+	}
+
+	/// Returns a new expression tree that is the left subree of the current tree.
+	pub fn left(self) -> Option<Self> {
+		let mut ops = self.0.into_iter();
+		let op = ops.next()?;
+		if op.is_operator() {
+			let mut left = alloc::vec![];
+			let mut stack = 2;
+
+			while stack <= 2 {
+				let op = ops.next()?;
+
+				match op {
+					Op::Predicate(_) => stack += 1,
+					Op::And | Op::Or => stack -= 1,
+					Op::Not => {}
+				};
+
+				left.push(op);
+			}
+
+			Some(Self(left))
+		} else {
+			None
+		}
+	}
+
+	/// Returns a new expression tree that is the right subtree of the current
+	/// tree.
+	pub fn right(self) -> Option<Self> {
+		let mut ops = self.0.into_iter();
+		let op = ops.next()?;
+
+		if op.is_operator() {
+			let mut stack = 2;
+
+			// Skip the left subtree
+			while stack <= 2 {
+				match ops.next()? {
+					Op::Predicate(_) => stack += 1,
+					Op::And | Op::Or => stack -= 1,
+					Op::Not => {}
+				};
+			}
+
+			// Collect the right subtree
+			let right: Vec<Op<P>> = ops.collect();
+			if right.is_empty() {
+				None
+			} else {
+				Some(Self(right))
+			}
+		} else {
+			None
+		}
 	}
 }
 
@@ -1028,5 +1115,58 @@ mod tests {
 		let invalid = vec![Op::And, Op::Predicate(1i32), Op::Or];
 		let expr: Result<Expression<i32>, _> = invalid.try_into();
 		assert!(matches!(expr, Err(super::Error::MalformedExpression)));
+	}
+
+	#[test]
+	fn get_left_right_subree() {
+		let expr = test_expression();
+		let left = expr.left().unwrap();
+		let expected =
+			Expression::from(1) & (Expression::from(2) | !Expression::from(3));
+
+		assert_eq!(left, expected);
+		assert_eq!(left.root(), &Op::And);
+
+		let left_left = left.clone().left().unwrap();
+		let expected = Expression::from(1);
+		assert_eq!(left_left, expected);
+		assert_eq!(left_left.root(), &Op::Predicate(1));
+
+		let left_right = left.right().unwrap();
+		let expected = Expression::from(2) | !Expression::from(3);
+		assert_eq!(left_right, expected);
+
+		let left_right_left = left_right.clone().left().unwrap();
+		let expected = Expression::from(2);
+		assert_eq!(left_right_left, expected);
+
+		let left_right_right = left_right.right().unwrap();
+		let expected = !Expression::from(3);
+		assert_eq!(left_right_right, expected);
+	}
+
+	#[test]
+	fn get_left_right_subree_larger() {
+		let expr = (test_expression() & test_expression()) & test_expression();
+
+		let left = expr.clone().left().unwrap();
+		let expected = test_expression() & test_expression();
+		assert_eq!(left, expected);
+		assert_eq!(left.root(), &Op::And);
+
+		let right = expr.right().unwrap();
+		let expected = test_expression();
+		assert_eq!(right, expected);
+		assert_eq!(right.root(), &Op::Or);
+
+		let left_left = left.clone().left().unwrap();
+		let expected = test_expression();
+		assert_eq!(left_left, expected);
+		assert_eq!(left_left.root(), &Op::Or);
+
+		let left_right = left.right().unwrap();
+		let expected = test_expression();
+		assert_eq!(left_right, expected);
+		assert_eq!(left_right.root(), &Op::Or);
 	}
 }

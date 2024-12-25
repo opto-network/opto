@@ -1,9 +1,7 @@
-use super::{private, Filter, PoliciesPattern};
+use super::{Filter, PoliciesPattern};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Cold;
-
-impl private::Sealed for Cold {}
 
 impl Filter for Cold {
 	fn matches(&self, _data: &[u8]) -> bool {

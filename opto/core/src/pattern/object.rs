@@ -1,14 +1,7 @@
 use {
-	super::{
-		Capture,
-		Cold,
-		DataCriterion,
-		Filter,
-		Hot,
-		PoliciesPattern,
-		UnlockPattern,
-	},
+	super::{Capture, Cold, Filter, Hot, PoliciesPattern, UnlockPattern},
 	crate::Object,
+	alloc::vec::Vec,
 };
 
 /// A set of criteria that match objects and their elements
@@ -16,7 +9,6 @@ use {
 pub struct ObjectPattern<F: Filter = Hot> {
 	policies: Option<PoliciesPattern<F>>,
 	unlock: Option<UnlockPattern<F>>,
-	data: Option<DataCriterion<F>>,
 }
 
 impl ObjectPattern<Hot> {
@@ -34,7 +26,6 @@ impl<F: Filter> Default for ObjectPattern<F> {
 		Self {
 			policies: None,
 			unlock: None,
-			data: None,
 		}
 	}
 }
@@ -50,22 +41,17 @@ impl<F: Filter> ObjectPattern<F> {
 		self.unlock = Some(pattern);
 		self
 	}
-
-	pub fn data(mut self, pattern: DataCriterion<F>) -> Self {
-		self.data = Some(pattern);
-		self
-	}
 }
 
 // matching
 impl<F: Filter> ObjectPattern<F> {
 	pub fn matches(&self, object: &Object) -> bool {
-		match (&self.policies, &self.data) {
+		match (&self.policies, &self.unlock) {
 			(None, None) => false,
-			(Some(policies), None) => policies.matches(object),
-			(None, Some(data)) => data.matches(&object.data),
-			(Some(policies), Some(data)) => {
-				policies.matches(object) && data.matches(&object.data)
+			(Some(policies), None) => policies.matches(&object.policies),
+			(None, Some(unlock)) => unlock.matches(&object.unlock),
+			(Some(policies), Some(unlock)) => {
+				policies.matches(&object.policies) && unlock.matches(&object.unlock)
 			}
 		}
 	}
@@ -79,37 +65,37 @@ impl<F: Filter> ObjectPattern<F> {
 }
 
 pub struct ObjectsSetPattern<F: Filter = Hot> {
-	required: Vec<ObjectPattern<F>>,
-	optional: Vec<ObjectPattern<F>>,
-	exact: bool,
+	_required: Vec<ObjectPattern<F>>,
+	_optional: Vec<ObjectPattern<F>>,
+	_exact: bool,
 }
 
 impl<F: Filter> Default for ObjectsSetPattern<F> {
 	fn default() -> Self {
 		Self {
-			required: Vec::new(),
-			optional: Vec::new(),
-			exact: false,
+			_required: Vec::new(),
+			_optional: Vec::new(),
+			_exact: false,
 		}
 	}
 }
 
 impl<F: Filter> ObjectsSetPattern<F> {
-	pub fn must_include(&self, pattern: ObjectPattern) -> Self {
+	pub fn must_include(&self, _pattern: ObjectPattern) -> Self {
 		todo!()
 	}
 
-	pub fn may_include(&self, pattern: ObjectPattern) -> Self {
+	pub fn may_include(&self, _pattern: ObjectPattern) -> Self {
 		todo!()
 	}
 }
 
 impl<F: Filter> ObjectsSetPattern<F> {
-	pub fn matches(&self, object: &Object) -> bool {
+	pub fn matches(&self, _object: &Object) -> bool {
 		todo!()
 	}
 
-	pub fn captures(&self, object: &Object) -> Vec<(Option<&str>, Capture)> {
+	pub fn captures(&self, _object: &Object) -> Vec<(Option<&str>, Capture)> {
 		todo!()
 	}
 }
