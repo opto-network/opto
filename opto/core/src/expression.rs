@@ -453,9 +453,9 @@ impl<P> Expression<P> {
 		let op = ops.next()?;
 		if op.is_operator() {
 			let mut left = alloc::vec![];
-			let mut stack = 2;
+			let mut stack = 0;
 
-			while stack <= 2 {
+			while stack <= 0 {
 				let op = ops.next()?;
 
 				match op {
@@ -480,10 +480,10 @@ impl<P> Expression<P> {
 		let op = ops.next()?;
 
 		if op.is_operator() {
-			let mut stack = 2;
+			let mut stack = 0;
 
 			// Skip the left subtree
-			while stack <= 2 {
+			while stack <= 0 {
 				match ops.next()? {
 					Op::Predicate(_) => stack += 1,
 					Op::And | Op::Or => stack -= 1,
@@ -1140,9 +1140,24 @@ mod tests {
 		let expected = Expression::from(2);
 		assert_eq!(left_right_left, expected);
 
-		let left_right_right = left_right.right().unwrap();
+		let left_right_left_left = left_right_left.clone().left();
+		assert!(left_right_left_left.is_none());
+
+		let left_right_left_right = left_right_left.clone().right();
+		assert!(left_right_left_right.is_none());
+
+		let left_right_right = left_right.clone().right().unwrap();
 		let expected = !Expression::from(3);
 		assert_eq!(left_right_right, expected);
+
+		// opearnd of NOT is always on the left side
+		let left_right_right_left = left_right_right.clone().left();
+		assert_eq!(left_right_right_left, Some(Expression::from(3)));
+
+		assert_eq!(left_right_right_left.unwrap().left(), None);
+
+		let left_right_right_right = left_right_right.clone().right();
+		assert_eq!(left_right_right_right, None);
 	}
 
 	#[test]
