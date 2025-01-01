@@ -1,6 +1,5 @@
 use {
-	super::{private, Filter, IntoFilter, PoliciesPattern},
-	crate::PredicateId,
+	super::{private, Anything, Filter, IntoFilter},
 	alloc::rc::Rc,
 	scale::Decode,
 };
@@ -16,10 +15,16 @@ impl Filter for Hot {
 	fn matches(&self, data: &[u8]) -> bool {
 		(self.fn_)(data)
 	}
+
+	fn any() -> Self {
+		Hot {
+			fn_: Rc::new(|_: &[u8]| true),
+		}
+	}
 }
 
 impl core::fmt::Debug for Hot {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("<runtime-func>").finish()
 	}
 }
@@ -42,10 +47,6 @@ where
 	}
 }
 
-/// Matches any data without any condition.
-#[derive(Clone)]
-pub struct Anything;
-
 impl IntoFilter<Hot, Anything> for Anything {
 	fn into_filter(self) -> Hot {
 		Hot {
@@ -62,25 +63,5 @@ where
 		Hot {
 			fn_: Rc::new(move |value: &[u8]| self(value)),
 		}
-	}
-}
-
-impl PoliciesPattern<Hot> {
-	/// Creates a new hot policies pattern.
-	/// Those patterns cannot be serialized and stored.
-	pub fn hot() -> PoliciesPattern<Hot> {
-		PoliciesPattern {
-			required: Default::default(),
-			optional: Default::default(),
-			exact: false,
-		}
-	}
-
-	pub fn must_include(self, policy: PredicateId) -> Self {
-		self.must_match(policy, |_: ()| true)
-	}
-
-	pub fn may_include(self, policy: PredicateId) -> Self {
-		self.may_match(policy, |_: ()| true)
 	}
 }

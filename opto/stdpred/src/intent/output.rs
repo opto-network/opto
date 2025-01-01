@@ -5,8 +5,8 @@ use {
 	scale::Decode,
 };
 
-/// Predicate returns true if the state transition contains some object.
-/// The parameter is a SCALE encoded expected output object.
+/// Predicate returns true if the state transition contains some
+/// object pattern.
 ///
 /// This predicate is the foundational building block for intents.
 #[predicate(id = 300, core_crate = opto_core)]
@@ -17,9 +17,11 @@ pub fn output(
 ) -> bool {
 	ensure!(is_unlock(&ctx));
 
-	let Ok(expected) = opto_core::Object::decode(&mut &params[..]) else {
+	let Ok(expected_pattern) =
+		opto_core::ObjectsSetPattern::<Cold>::decode(&mut &params[..])
+	else {
 		return false;
 	};
 
-	transition.outputs.iter().any(|output| *output == expected)
+	expected_pattern.matches(&transition.outputs)
 }

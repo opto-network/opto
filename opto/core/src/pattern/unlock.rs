@@ -1,11 +1,12 @@
 use {
 	super::{predicate::PredicatePattern, Filter},
 	crate::{Expression, Op, Predicate},
-	alloc::vec::Vec,
+	alloc::{vec, vec::Vec},
 	core::ops::Range,
+	scale::{Decode, Encode, Input},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub enum MatchMode {
 	/// The unlock expression tree must be isomorphic to the pattern and
 	/// all corresponding nodes must match the expression.
@@ -22,21 +23,44 @@ pub struct UnlockPattern<F: Filter> {
 	mode: MatchMode,
 }
 
+impl<F: Filter + PartialEq> PartialEq for UnlockPattern<F> {
+	fn eq(&self, other: &Self) -> bool {
+		self.expression == other.expression && self.mode == other.mode
+	}
+}
+
+impl<F: Filter + Encode> Encode for UnlockPattern<F> {
+	fn encode(&self) -> Vec<u8> {
+		let mut result = vec![];
+		result.extend_from_slice(&self.expression.encode());
+		result.extend_from_slice(&self.mode.encode());
+		result
+	}
+}
+
+impl<F: Filter + Decode> Decode for UnlockPattern<F> {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, scale::Error> {
+		let expression = Expression::decode(input)?;
+		let mode = MatchMode::decode(input)?;
+		Ok(Self { expression, mode })
+	}
+}
+
 // construction
 impl<F: Filter> UnlockPattern<F> {
 	/// Creates a new unlock pattern matching the given expression exactly.
-	pub fn exact(expression: Expression<PredicatePattern<F>>) -> Self {
+	pub fn exact(expression: impl IntoPatternExpression<F>) -> Self {
 		Self {
-			expression,
+			expression: expression.into_pattern_expression(),
 			mode: MatchMode::Exact,
 		}
 	}
 
 	/// Creates a new unlock pattern matching the given expression anywhere in the
 	/// unlock expression tree.
-	pub fn anywhere(expression: Expression<PredicatePattern<F>>) -> Self {
+	pub fn fuzzy(expression: impl IntoPatternExpression<F>) -> Self {
 		Self {
-			expression,
+			expression: expression.into_pattern_expression(),
 			mode: MatchMode::Anywhere,
 		}
 	}
@@ -61,7 +85,7 @@ impl<F: Filter> UnlockPattern<F> {
 	/// and its index in the expression prefix notation.
 	///
 	/// (_, pred, index) => pred == expr.as_ops()[index]
-	pub fn captures<'a, 'b>(
+	pub fn capture<'a, 'b>(
 		&'a self,
 		expr: &'b Expression,
 	) -> Vec<(&'a str, &'b Predicate, usize)> {
@@ -173,14 +197,53 @@ impl<F: Filter> UnlockPattern<F> {
 	}
 }
 
+pub trait IntoUnlockPattern<F: Filter> {
+	fn into_unlock_pattern(self) -> UnlockPattern<F>;
+}
+
+pub trait IntoPatternExpression<F: Filter> {
+	fn into_pattern_expression(self) -> Expression<PredicatePattern<F>>;
+}
+
+impl<F: Filter> IntoUnlockPattern<F> for UnlockPattern<F> {
+	fn into_unlock_pattern(self) -> UnlockPattern<F> {
+		self
+	}
+}
+
+impl<F: Filter> IntoUnlockPattern<F> for Expression<PredicatePattern<F>> {
+	fn into_unlock_pattern(self) -> UnlockPattern<F> {
+		UnlockPattern::exact(self)
+	}
+}
+
+impl<F: Filter> IntoUnlockPattern<F> for PredicatePattern<F> {
+	fn into_unlock_pattern(self) -> UnlockPattern<F> {
+		UnlockPattern::exact(Expression::from(self))
+	}
+}
+
+impl<F: Filter> IntoPatternExpression<F> for PredicatePattern<F> {
+	fn into_pattern_expression(self) -> Expression<PredicatePattern<F>> {
+		self.into()
+	}
+}
+
+impl<F: Filter> IntoPatternExpression<F> for Expression<PredicatePattern<F>> {
+	fn into_pattern_expression(self) -> Expression<PredicatePattern<F>> {
+		self
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use {
 		super::*,
 		crate::{
-			pattern::{hot::Anything, predicate::PredicatePattern},
+			pattern::predicate::PredicatePattern,
 			Predicate,
 			PredicateId,
+			PredicateIdExt,
 		},
 		scale::Encode,
 	};
@@ -192,10 +255,7 @@ mod tests {
 	#[test]
 	fn match_single_predicate_exact() {
 		let pattern = UnlockPattern::exact(
-			PredicatePattern::new(SIGNATURE_PRED, |data: &[u8]| {
-				data.starts_with(b"hello")
-			})
-			.into(),
+			SIGNATURE_PRED.with_params(|data: &[u8]| data.starts_with(b"hello")),
 		);
 
 		// positive
@@ -251,17 +311,13 @@ mod tests {
 	#[test]
 	fn match_single_predicate_exact_with_capture() {
 		let pattern = UnlockPattern::exact(
-			PredicatePattern::named(
-				SIGNATURE_PRED,
-				|data: &[u8]| data.starts_with(b"hello"),
-				"signature",
-			)
-			.into(),
+			PredicatePattern::named("signature", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data.starts_with(b"hello")),
 		);
 
 		// positive
 		assert_eq!(
-			pattern.captures(
+			pattern.capture(
 				&Predicate {
 					id: SIGNATURE_PRED,
 					params: b"hello".to_vec(),
@@ -279,7 +335,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			pattern.captures(
+			pattern.capture(
 				&Predicate {
 					id: SIGNATURE_PRED,
 					params: b"hello there".to_vec(),
@@ -331,19 +387,15 @@ mod tests {
 
 	#[test]
 	fn match_exact_non_isomorphic() {
-		let signature: Expression<_> = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|data: &[u8]| data.starts_with(b"hello"),
-			"public key",
-		)
-		.into();
+		let signature: Expression<_> =
+			PredicatePattern::named("public key", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data.starts_with(b"hello"))
+				.into();
 
-		let time_lock: Expression<_> = PredicatePattern::named(
-			TIME_AFTER_PRED,
-			|time: u32| time > 15000,
-			"time_after",
-		)
-		.into();
+		let time_lock: Expression<_> =
+			PredicatePattern::named("time_after", TIME_AFTER_PRED)
+				.with_params(|time: u32| time > 15000)
+				.into();
 
 		let expr_pattern: Expression<_> = signature & time_lock;
 		let pattern = UnlockPattern::exact(expr_pattern);
@@ -370,7 +422,7 @@ mod tests {
 		let expr = pred1.clone() & pred2.clone();
 		assert!(pattern.matches(&expr));
 
-		assert_eq!(pattern.captures(&expr), vec![
+		assert_eq!(pattern.capture(&expr), vec![
 			(
 				"public key",
 				&Predicate {
@@ -396,19 +448,15 @@ mod tests {
 
 	#[test]
 	fn match_and_pattern_exact() {
-		let signature: Expression<_> = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|data: &[u8]| data.starts_with(b"hello"),
-			"public key",
-		)
-		.into();
+		let signature: Expression<_> =
+			PredicatePattern::named("public key", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data.starts_with(b"hello"))
+				.into();
 
-		let time_lock: Expression<_> = PredicatePattern::named(
-			TIME_AFTER_PRED,
-			|time: u32| time > 15000,
-			"time_after",
-		)
-		.into();
+		let time_lock: Expression<_> =
+			PredicatePattern::named("time_after", TIME_AFTER_PRED)
+				.with_params(|time: u32| time > 15000)
+				.into();
 
 		let expr_pattern: Expression<_> = signature & time_lock;
 		let pattern = UnlockPattern::exact(expr_pattern);
@@ -429,7 +477,7 @@ mod tests {
 		let expr = pred1.clone() & pred2.clone();
 		assert!(pattern.matches(&expr));
 
-		assert_eq!(pattern.captures(&expr), vec![
+		assert_eq!(pattern.capture(&expr), vec![
 			(
 				"public key",
 				&Predicate {
@@ -457,7 +505,7 @@ mod tests {
 
 		let expr = pred1 & unfulfilled_time;
 		assert!(!pattern.matches(&expr));
-		assert!(pattern.captures(&expr).is_empty());
+		assert!(pattern.capture(&expr).is_empty());
 
 		let invalid_signature: Expression<_> = Predicate {
 			id: SIGNATURE_PRED,
@@ -467,7 +515,7 @@ mod tests {
 
 		let expr = invalid_signature & pred2;
 		assert!(!pattern.matches(&expr));
-		assert!(pattern.captures(&expr).is_empty());
+		assert!(pattern.capture(&expr).is_empty());
 	}
 
 	#[test]
@@ -476,22 +524,18 @@ mod tests {
 		// can be unlocked by signature of pub1 after time 15000 or signature of
 		// pub2 otherwise
 
-		let signature1: Expression<_> = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|data: &[u8]| data.starts_with(b"pub1"),
-			"pub1",
-		)
-		.into();
+		let signature1: Expression<_> =
+			PredicatePattern::named("pub1", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data.starts_with(b"pub1"))
+				.into();
 
 		let signature2: Expression<_> =
-			PredicatePattern::named(SIGNATURE_PRED, Anything, "master key").into();
+			PredicatePattern::named("master key", SIGNATURE_PRED).into();
 
-		let time_lock: Expression<_> = PredicatePattern::named(
-			TIME_AFTER_PRED,
-			|time: u32| time > 15000,
-			"time_after",
-		)
-		.into();
+		let time_lock: Expression<_> =
+			PredicatePattern::named("time_after", TIME_AFTER_PRED)
+				.with_params(|time: u32| time > 15000)
+				.into();
 
 		let expr_pattern: Expression<_> = (signature1 & time_lock) | signature2;
 		let pattern = UnlockPattern::exact(expr_pattern);
@@ -519,7 +563,7 @@ mod tests {
 		let expr = (pred1.clone() & pred2.clone()) | pred3.clone();
 		assert!(pattern.matches(&expr));
 
-		assert_eq!(pattern.captures(&expr), vec![
+		assert_eq!(pattern.capture(&expr), vec![
 			(
 				"pub1",
 				&Predicate {
@@ -575,8 +619,8 @@ mod tests {
 
 	#[test]
 	fn match_as_long_as_sig_unlocks() {
-		let sig =
-			PredicatePattern::new(SIGNATURE_PRED, |pubkey: &[u8]| pubkey == b"pub1");
+		let sig = PredicatePattern::new(SIGNATURE_PRED)
+			.with_params(|pubkey: &[u8]| pubkey == b"pub1");
 
 		let sig: Expression<_> = sig.into();
 		let anything: Expression<_> = PredicatePattern::any().into();
@@ -605,13 +649,10 @@ mod tests {
 
 	#[test]
 	fn match_anywhere_single_pred() {
-		let pattern = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|pubkey: &[u8]| pubkey == b"pub1",
-			"mysig",
-		);
+		let pattern = PredicatePattern::named("mysig", SIGNATURE_PRED)
+			.with_params(|pubkey: &[u8]| pubkey == b"pub1");
 
-		let unlock_pattern = UnlockPattern::anywhere(pattern.into());
+		let unlock_pattern = UnlockPattern::fuzzy(pattern);
 
 		// positive, matches a tree with exact structure
 		assert!(unlock_pattern.matches(
@@ -664,41 +705,35 @@ mod tests {
 
 	#[test]
 	fn predicates_smoke() {
-		assert!(
-			PredicatePattern::new(TIME_AFTER_PRED, |time: u64| time < 15000).matches(
-				&Predicate {
-					id: TIME_AFTER_PRED,
-					params: 10000u64.encode(),
-				},
-			)
-		);
+		assert!(PredicatePattern::new(TIME_AFTER_PRED)
+			.with_params(|time: u64| time < 15000)
+			.matches(&Predicate {
+				id: TIME_AFTER_PRED,
+				params: 10000u64.encode(),
+			},));
 
-		assert!(PredicatePattern::new(SIGNATURE_PRED, |data: &[u8]| data
-			== b"pub1")
-		.matches(&Predicate {
-			id: SIGNATURE_PRED,
-			params: b"pub1".encode(),
-		}));
+		assert!(PredicatePattern::new(SIGNATURE_PRED)
+			.with_params(|data: &[u8]| data == b"pub1")
+			.matches(&Predicate {
+				id: SIGNATURE_PRED,
+				params: b"pub1".encode(),
+			}));
 	}
 
 	#[test]
 	fn match_anywhere_subtree() {
-		let signature: Expression<_> = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|data: &[u8]| data == b"pub1",
-			"my sig",
-		)
-		.into();
+		let signature: Expression<_> =
+			PredicatePattern::named("my sig", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data == b"pub1")
+				.into();
 
-		let time_unlocked: Expression<_> = PredicatePattern::named(
-			TIME_AFTER_PRED,
-			|time: u64| time < 15000u64,
-			"vested",
-		)
-		.into();
+		let time_unlocked: Expression<_> =
+			PredicatePattern::named("vested", TIME_AFTER_PRED)
+				.with_params(|time: u64| time < 15000u64)
+				.into();
 
 		let expr_pattern: Expression<_> = signature & time_unlocked;
-		let pattern = UnlockPattern::anywhere(expr_pattern);
+		let pattern = UnlockPattern::fuzzy(expr_pattern);
 
 		let sig = |val: &[u8]| -> Expression {
 			Predicate {
@@ -768,22 +803,18 @@ mod tests {
 
 	#[test]
 	fn capture_anywhere_subtree() {
-		let signature: Expression<_> = PredicatePattern::named(
-			SIGNATURE_PRED,
-			|data: &[u8]| data == b"pub1",
-			"my sig",
-		)
-		.into();
+		let signature: Expression<_> =
+			PredicatePattern::named("my sig", SIGNATURE_PRED)
+				.with_params(|data: &[u8]| data == b"pub1")
+				.into();
 
-		let time_unlocked: Expression<_> = PredicatePattern::named(
-			TIME_AFTER_PRED,
-			|time: u64| time < 15000u64,
-			"vested",
-		)
-		.into();
+		let time_unlocked: Expression<_> =
+			PredicatePattern::named("vested", TIME_AFTER_PRED)
+				.with_params(|time: u64| time < 15000u64)
+				.into();
 
 		let expr_pattern: Expression<_> = signature & time_unlocked;
-		let pattern = UnlockPattern::anywhere(expr_pattern);
+		let pattern = UnlockPattern::fuzzy(expr_pattern);
 
 		let sig = |val: &[u8]| -> Expression {
 			Predicate {
@@ -811,7 +842,7 @@ mod tests {
 
 		// positive
 		let expr = (sig(b"pub1") & time(10000)) | preimage(b"hash1");
-		assert_eq!(pattern.captures(&expr), vec![
+		assert_eq!(pattern.capture(&expr), vec![
 			(
 				"my sig",
 				&Predicate {
@@ -833,7 +864,7 @@ mod tests {
 		let expr = ((preimage(b"hash1") | preimage(b"hash2")) & time(20000))
 			| ((time(50000) & preimage(b"hash2")) | (sig(b"pub1") & time(10000)));
 		assert!(pattern.matches(&expr));
-		assert_eq!(pattern.captures(&expr), vec![
+		assert_eq!(pattern.capture(&expr), vec![
 			(
 				"my sig",
 				&Predicate {

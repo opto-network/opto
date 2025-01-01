@@ -1,5 +1,5 @@
 use {
-	alloc::{format, vec::Vec},
+	alloc::vec::Vec,
 	derive_more::derive::{Display, From, Into},
 	scale::{Decode, Encode},
 	scale_decode::DecodeAsType,
@@ -89,9 +89,6 @@ pub struct Predicate {
 
 impl core::fmt::Debug for Predicate {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		f.debug_struct("Predicate")
-			.field("id", &self.id)
-			.field("params", &format!("0x{0}", hex::encode(&self.params)))
-			.finish()
+		write!(f, "Predicate({}, 0x{})", self.id, hex::encode(&self.params))
 	}
 }

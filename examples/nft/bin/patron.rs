@@ -1,9 +1,8 @@
 use {
-	ext::*,
 	nft::Mint,
 	opto::*,
 	rand::random,
-	signer::sr25519::dev::{self, alice, charlie},
+	signer::sr25519::dev::{self, alice, bob, charlie},
 };
 
 #[tokio::main]
@@ -24,47 +23,62 @@ async fn main() -> anyhow::Result<()> {
 
 	println!("Mint object: {mint:#?}");
 
-	let nftid = random::<u16>().to_string();
+	for _ in 0..5 {
+		mint_for(&client, &mint, "Bob", bob().public_key().to_account_id()).await?;
+	}
 
-	println!("Minting {NFT_NAME} #{nftid} for charlie...");
-	let tx = mint
-		.issue(Digest::compute(nftid.as_bytes()))
-		.recipient(&charlie().public_key().to_account_id())
-		.data(b"hair=1,shirt=28,eyes=981,ears=82".to_vec())
-		.transition()
-		.set_nonces()
-		.sign(&alice());
-
-	println!("mint transition: {:#?}", tx);
-
-	let charlies_nft = tx.outputs[0].clone();
-	client.apply(&alice(), vec![tx]).await?;
-	println!(
-		"minted NFT for Charlie successfully. NFT object: {:#?}",
-		charlies_nft
-	);
-
-	let nftid = random::<u16>().to_string();
-	println!("Minting {NFT_NAME} #{nftid} for dave...");
-	let tx = mint
-		.issue(Digest::compute(nftid.as_bytes()))
-		.recipient(&dev::dave().public_key().to_account_id())
-		.data(b"hair=1,shirt=28,eyes=981,ears=82".to_vec())
-		.transition()
-		.set_nonces()
-		.sign(&alice());
-
-	println!("mint transition: {:#?}", tx);
-
-	let daves_nft = tx.outputs[0].clone();
-	client.apply(&alice(), vec![tx]).await?;
-
-	println!(
-		"minted NFT for Dave successfully. NFT object: {:#?}",
-		daves_nft
-	);
+	for _ in 0..5 {
+		mint_for(
+			&client,
+			&mint,
+			"Charlie",
+			charlie().public_key().to_account_id(),
+		)
+		.await?;
+	}
 
 	Ok(())
+}
+
+async fn mint_for(
+	client: &Client,
+	mint: &Mint,
+	name: &str,
+	account_id: AccountId32,
+) -> anyhow::Result<()> {
+	let serial_number = random::<u16>();
+	println!("Minting NFT#{serial_number} for {name}..");
+	let nft = mint_nft(&client, mint, serial_number, &account_id).await?;
+	println!("Minted NFT for {name} successfully. NFT object: {nft:#?}");
+	Ok(())
+}
+
+async fn mint_nft(
+	client: &Client,
+	mint: &Mint,
+	serial_number: u16,
+	identity: &AccountId32,
+) -> Result<Object, nft::Error> {
+	let data = format!(
+		"hair={},shirt={},eyes={},ears={}",
+		serial_number + 1,
+		serial_number + 2,
+		serial_number + 3,
+		serial_number + 4
+	);
+
+	let tx = mint
+		.issue(Digest::compute(&serial_number.to_le_bytes()[..]))
+		.recipient(&identity)
+		.data(data.as_bytes().to_vec())
+		.transition()
+		.set_nonces()
+		.sign(&alice());
+
+	let nft = tx.outputs[1].clone();
+	client.apply(&alice(), vec![tx]).await?;
+
+	Ok(nft)
 }
 
 async fn open_or_create_mint(

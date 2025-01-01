@@ -1,5 +1,5 @@
 pub mod ephemeral;
-pub mod input;
 pub mod output;
+pub mod transition;
 
-pub use {ephemeral::ephemeral, input::input, output::output};
+pub use {ephemeral::ephemeral, output::output, transition::transition};

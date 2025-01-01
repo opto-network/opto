@@ -30,7 +30,7 @@ fn can_create_unique_object() {
 
 		let digest = object.digest();
 
-		assert!(pallet_objects::Objects::<Runtime>::get(digest.clone()).is_none());
+		assert!(pallet_objects::Objects::<Runtime>::get(digest).is_none());
 
 		let transition = Transition {
 			inputs: vec![],
@@ -43,7 +43,7 @@ fn can_create_unique_object() {
 		]));
 
 		assert_eq!(
-			pallet_objects::Objects::<Runtime>::get(digest.clone()),
+			pallet_objects::Objects::<Runtime>::get(digest),
 			Some(StoredObject {
 				instance_count: 1,
 				object: object.clone(),
@@ -110,7 +110,7 @@ fn can_delete_unique_object() {
 
 		// now consume the unique object
 		let transition = Transition {
-			inputs: vec![digest.clone()],
+			inputs: vec![digest],
 			ephemerals: vec![preimage_unlock_obj],
 			outputs: vec![],
 		};
@@ -277,7 +277,7 @@ fn create_delete_create_unique() {
 		};
 
 		let transition = Transition {
-			inputs: vec![digest.clone()],
+			inputs: vec![digest],
 			ephemerals: vec![preimage_unlock_obj],
 			outputs: vec![],
 		};

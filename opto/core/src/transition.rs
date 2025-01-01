@@ -157,6 +157,14 @@ where
 }
 
 impl Transition<Expanded> {
+	pub fn compact(self) -> Transition<Compact> {
+		Transition {
+			inputs: self.inputs.into_iter().map(|o| o.digest()).collect(),
+			ephemerals: self.ephemerals,
+			outputs: self.outputs,
+		}
+	}
+
 	/// Given an expanded at-rest transition graph and a function that is able to
 	/// create executable versions of the at-rest predicates this function will
 	/// create an executable version of the transition that can be invoked and

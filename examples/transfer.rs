@@ -4,7 +4,6 @@
 
 use opto::{
 	self,
-	ext::CompactTransitionExt,
 	repr::Compact,
 	Hashable,
 	MutatingClient,

@@ -47,7 +47,7 @@ pub fn native_impl_factory<E: Environment + 'static>(
 		// intents
 		ids::OUTPUT => intent::output,
 		ids::EPHEMERAL => intent::ephemeral,
-		ids::INPUT => intent::input,
+		ids::TRANSITION => intent::transition,
 
 		// env
 		ids::BEFORE_TIME => env::before_time,

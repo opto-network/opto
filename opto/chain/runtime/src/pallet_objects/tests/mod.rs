@@ -50,7 +50,7 @@ fn after_genesis() -> TestExternalities {
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()
 		.build_storage()
 		.unwrap();
-	let _ = pallet_objects::GenesisConfig::<Runtime> {
+	pallet_objects::GenesisConfig::<Runtime> {
 		stdpred: include_bytes!("../../../../../../target/opto-stdpred.car")
 			.to_vec(),
 		objects: vec![],

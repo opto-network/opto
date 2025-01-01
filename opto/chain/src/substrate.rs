@@ -83,7 +83,6 @@ pub async fn start_chain(
 				}
 
 				let key = get_vrf_storage_key(height);
-				println!("trying vrf storage key: {}", hex::encode(&key));
 				if let Ok(Some(vrf)) = state.storage(&key) {
 					let randomness: Digest = Decode::decode(&mut &vrf[..]).unwrap();
 					let _ = events_tx.send(Event::VrfUpdated { height, randomness });

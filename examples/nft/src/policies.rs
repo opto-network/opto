@@ -9,19 +9,10 @@
 //!   The uniqueness value is the hash of the
 
 use {
+	crate::NftIdentity,
 	opto::*,
-	scale::{ConstEncodedLen, Decode, Encode, MaxEncodedLen},
+	scale::{Decode, MaxEncodedLen},
 };
-
-/// A serialized version of this struct is the contents of the `nft` policy.
-/// The uniqueness of an nft is the hash of this struct.
-#[derive(Debug, Encode, Decode, MaxEncodedLen)]
-pub struct NftIdentity {
-	pub mint: Digest,
-	pub tag: Digest,
-	pub mutable: bool,
-}
-impl ConstEncodedLen for NftIdentity {}
 
 #[predicate(id = 200020)]
 pub fn nft(

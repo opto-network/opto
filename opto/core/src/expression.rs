@@ -318,6 +318,36 @@ impl<P> IntoIterator for Expression<P> {
 	}
 }
 
+impl Expression<bool> {
+	pub fn reduce(&self) -> bool {
+		fn eval(ops: &[Op<bool>], stack: &mut Vec<bool>) -> bool {
+			for op in ops.iter().rev() {
+				match op {
+					Op::Predicate(p) => stack.push(*p),
+					Op::And => {
+						let right = stack.pop().expect("malformed expression");
+						let left = stack.pop().expect("malformed expression");
+						stack.push(left && right);
+					}
+					Op::Or => {
+						let right = stack.pop().expect("malformed expression");
+						let left = stack.pop().expect("malformed expression");
+						stack.push(left || right);
+					}
+					Op::Not => {
+						let operand = stack.pop().expect("malformed expression");
+						stack.push(!operand);
+					}
+				}
+			}
+
+			stack.pop().expect("malformed expression")
+		}
+
+		eval(&self.0, &mut Vec::new())
+	}
+}
+
 impl<P> Expression<P> {
 	/// Returns a reference to the list of operators in the expression tree in
 	/// prefix (parent, left, right) order.
@@ -1183,5 +1213,121 @@ mod tests {
 		let expected = test_expression();
 		assert_eq!(left_right, expected);
 		assert_eq!(left_right.root(), &Op::Or);
+	}
+
+	#[test]
+	#[allow(clippy::bool_assert_comparison)]
+	fn reduce_boolean_expression_cases() {
+		let expr = Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !Expression::from(true);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !Expression::from(false);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = Expression::from(true) & Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = Expression::from(true) & Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = Expression::from(false) & Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = Expression::from(true) | Expression::from(false);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = Expression::from(false) | Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = Expression::from(true) | Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = Expression::from(false) | Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(true) & Expression::from(false));
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(true) | Expression::from(false));
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(false) | Expression::from(false));
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(true) & Expression::from(true));
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(false) & Expression::from(false));
+		assert_eq!(expr.reduce(), true);
+
+		let expr = (Expression::from(true) & Expression::from(true))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = (Expression::from(true) & Expression::from(false))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = (Expression::from(false) & Expression::from(false))
+			| Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = (Expression::from(false) & Expression::from(false))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = (Expression::from(true) | Expression::from(false))
+			& Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = (Expression::from(true) | Expression::from(false))
+			& Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = (Expression::from(false) | Expression::from(false))
+			& Expression::from(true);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = (Expression::from(false) | Expression::from(false))
+			& Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(true) & Expression::from(true))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(true) & Expression::from(false))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(false) & Expression::from(false))
+			| Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(false) & Expression::from(false))
+			| Expression::from(false);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(true) | Expression::from(false))
+			& Expression::from(true);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(true) | Expression::from(false))
+			& Expression::from(false);
+		assert_eq!(expr.reduce(), false);
+
+		let expr = !(Expression::from(false) | Expression::from(false))
+			& Expression::from(true);
+		assert_eq!(expr.reduce(), true);
+
+		let expr = !(Expression::from(false) | Expression::from(false))
+			& Expression::from(false);
+		assert_eq!(expr.reduce(), false);
 	}
 }

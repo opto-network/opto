@@ -1,20 +1,4 @@
-use {
-	crate::NftIdentity,
-	opto::{
-		ext::{CompactTransitionExt, ExpressionExt},
-		stdpred,
-		AccountId32,
-		Client,
-		Digest,
-		Expression,
-		Hashable,
-		Object,
-		Predicate,
-		ReadOnlyClient,
-		Transition,
-	},
-	scale::Encode,
-};
+use {crate::NftIdentity, codec::Encode, opto::*};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
