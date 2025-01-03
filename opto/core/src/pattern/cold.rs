@@ -1,12 +1,12 @@
 use {
 	super::{private, Anything, Filter, IntoFilter},
 	crate::Expression,
-	alloc::vec::Vec,
+	alloc::{format, string::ToString, vec::Vec},
 	core::ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo},
 	scale::{Decode, Encode},
 };
 
-#[derive(Clone, Debug, Encode, Decode, PartialEq)]
+#[derive(Clone, Encode, Decode, PartialEq)]
 pub enum Comparison {
 	Equal,
 	NotEqual,
@@ -14,6 +14,19 @@ pub enum Comparison {
 	LessThanOrEqual,
 	GreaterThan,
 	GreaterThanOrEqual,
+}
+
+impl core::fmt::Debug for Comparison {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Comparison::Equal => write!(f, "=="),
+			Comparison::NotEqual => write!(f, "!="),
+			Comparison::LessThan => write!(f, "<"),
+			Comparison::LessThanOrEqual => write!(f, "<="),
+			Comparison::GreaterThan => write!(f, ">"),
+			Comparison::GreaterThanOrEqual => write!(f, ">="),
+		}
+	}
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -132,15 +145,61 @@ impl Decode for SourceRange {
 	}
 }
 
-#[derive(Clone, Debug, Encode, Decode, PartialEq)]
+#[derive(Clone, Encode, Decode, PartialEq)]
 pub struct Condition {
 	pub op: Comparison,
 	pub value: Vec<u8>,
 	pub source: SourceRange,
 }
 
-#[derive(Clone, Debug, Encode, Decode, PartialEq)]
+impl core::fmt::Debug for Condition {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		if self.value.is_empty()
+			&& self.op == Comparison::Equal
+			&& self.source.from == Bound::Unbounded
+			&& self.source.to == Bound::Unbounded
+		{
+			write!(f, "Any")
+		} else {
+			let formatted_range = match (&self.source.from, &self.source.to) {
+				(Bound::Included(from), Bound::Excluded(to)) => {
+					format!("{:?}..{:?}", from, to)
+				}
+				(Bound::Included(from), Bound::Included(to)) => {
+					format!("{:?}..={:?}", from, to)
+				}
+				(Bound::Excluded(from), Bound::Included(to)) => {
+					format!("{:?}..={:?}", from, to)
+				}
+				(Bound::Excluded(from), Bound::Excluded(to)) => {
+					format!("{:?}..{:?}", from, to)
+				}
+				(Bound::Unbounded, Bound::Excluded(to)) => format!("..{:?}", to),
+				(Bound::Unbounded, Bound::Included(to)) => format!("..={:?}", to),
+				(Bound::Included(from), Bound::Unbounded) => format!("{:?}..", from),
+				(Bound::Excluded(from), Bound::Unbounded) => format!("{:?}..", from),
+				(Bound::Unbounded, Bound::Unbounded) => "..".to_string(),
+			};
+
+			write!(
+				f,
+				"([{}] {:?} 0x{}",
+				formatted_range,
+				self.op,
+				hex::encode(&self.value)
+			)
+		}
+	}
+}
+
+#[derive(Clone, Encode, Decode, PartialEq)]
 pub struct Cold(Expression<Condition>);
+
+impl core::fmt::Debug for Cold {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		write!(f, "{:?}", self.0)
+	}
+}
 
 impl Filter for Cold {
 	fn matches(&self, data: &[u8]) -> bool {
@@ -157,7 +216,7 @@ impl Filter for Cold {
 				Bound::Unbounded => data.len().min(op.value.len()),
 			};
 
-			if start == end && data.is_empty() {
+			if start == end && op.value.is_empty() {
 				return true;
 			}
 
@@ -166,7 +225,6 @@ impl Filter for Cold {
 			}
 
 			let value = &data[start..end];
-
 			match op.op {
 				Comparison::Equal => value == op.value,
 				Comparison::NotEqual => value != op.value,
@@ -204,6 +262,8 @@ impl IntoFilter<Cold, Anything> for Anything {
 		}))
 	}
 }
+
+impl private::Sealed for Cold {}
 
 pub trait Comparable {
 	fn value(&self) -> Vec<u8>;
@@ -317,9 +377,11 @@ mod tests {
 		let pattern = ObjectPattern::<Cold>::named("BaycNft")
 			.policies(
 				PoliciesPattern::<Cold>::exact()
-					.require(NFT_POLICY.named("identity").with_params(
-						(0..32).equals(Digest::compute(b"BAYC'2025").as_ref()),
-					))
+					.require(
+						NFT_POLICY
+							.named("identity")
+							.with_params((0..32).equals(Digest::compute(b"BAYC'2025"))),
+					)
 					.require(PredicatePattern::new(UNIQUE_POLICY))
 					.allow(PredicatePattern::new(NONCE_POLICY)),
 			)
@@ -329,7 +391,6 @@ mod tests {
 			)))
 			.data(DataPattern::named("attribs", Anything));
 
-		println!("pattern: {pattern:?}");
 		assert!(pattern.matches(&nft));
 
 		let serialized_pattern = pattern.encode();
@@ -481,7 +542,8 @@ mod tests {
 	#[test]
 	fn unsigned_int_type_conversion() {
 		let cold: Cold = Anything.into_filter();
-		assert!(cold.matches(b""),);
+		assert!(cold.matches(b""));
+		assert!(cold.matches(b"abc"));
 
 		let cold: Cold = (0..1).equals(187u8);
 		assert!(cold.matches(&187u8.to_le_bytes()));

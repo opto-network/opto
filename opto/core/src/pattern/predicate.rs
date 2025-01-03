@@ -21,7 +21,7 @@ use {
 ///
 /// Cold criteria are serializable and can be used in persisted forms, but they
 /// are less flexible than hot criteria.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum PredicatePattern<F: Filter = Hot> {
 	Any,
 	Criteria {
@@ -29,6 +29,26 @@ pub enum PredicatePattern<F: Filter = Hot> {
 		filter: F,
 		capture: Option<String>,
 	},
+}
+
+impl<F: Filter> core::fmt::Debug for PredicatePattern<F> {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Any => write!(f, "Any"),
+			Self::Criteria {
+				id,
+				filter,
+				capture,
+			} => {
+				let name = match capture {
+					Some(name) => name,
+					None => "<unnamed>",
+				};
+
+				write!(f, "({:?}, {:?}, {:?})", id, filter, name)
+			}
+		}
+	}
 }
 
 impl<F: Filter + PartialEq> PartialEq for PredicatePattern<F> {
@@ -201,7 +221,7 @@ impl<F: Filter> PredicatePattern<F> {
 }
 
 pub trait PredicateIdExt: private::Sealed {
-	fn params<D: Encode>(self, params: &D) -> Predicate;
+	fn params<D: Encode>(self, params: D) -> Predicate;
 	fn to_predicate(self) -> Predicate;
 
 	fn named<F: Filter>(self, name: impl AsRef<str>) -> PredicatePattern<F>;
@@ -212,7 +232,7 @@ pub trait PredicateIdExt: private::Sealed {
 }
 
 impl PredicateIdExt for PredicateId {
-	fn params<D: Encode>(self, params: &D) -> Predicate {
+	fn params<D: Encode>(self, params: D) -> Predicate {
 		Predicate {
 			id: self,
 			params: params.encode(),

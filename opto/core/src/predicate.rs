@@ -92,3 +92,12 @@ impl core::fmt::Debug for Predicate {
 		write!(f, "Predicate({}, 0x{})", self.id, hex::encode(&self.params))
 	}
 }
+
+impl From<PredicateId> for Predicate {
+	fn from(id: PredicateId) -> Self {
+		Self {
+			id,
+			params: Vec::new(),
+		}
+	}
+}

@@ -116,7 +116,7 @@ async fn put_nft_for_sale(
 
 	let expectation = ObjectsSetPattern::<Cold>::fuzzy().must_include(
 		ObjectPattern::named("ask")
-			.policies(stdpred::ids::COIN.with_params((..).equals(b"USDT")))
+			.policies(stdpred::ids::COIN.with_params((..).equals(1)))
 			.unlock(stdpred::ids::SR25519.with_params((..).equals(my_account_id)))
 			.data((..).greater_than_or_equals(nft_price)),
 	);

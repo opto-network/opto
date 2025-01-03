@@ -68,9 +68,19 @@ fn devnet_genesis() -> Value {
 			phantom: core::marker::PhantomData
 		},
 		"assets": {
-			"assets": vec![(1, AccountKeyring::Alice.to_account_id(), true, 10000)],
-			"metadata": vec![(1, b"Tether USD".to_vec(), b"USDT".to_vec(), 4)],
-			"accounts": vec![(1, AccountKeyring::Alice.to_account_id(), 700000000)],
+			"assets": vec![
+				 (1, AccountKeyring::Alice.to_account_id(), true, 10000),
+				 (2, AccountKeyring::Alice.to_account_id(), true, 10000),
+			],
+			"metadata": vec![
+				 (1, b"Tether USD".to_vec(), b"USDT".to_vec(), 4),
+				 (2, b"Wrapped Ether".to_vec(), b"WETH".to_vec(), 4),
+			],
+			"accounts":
+					AccountKeyring::iter().map(|a| (1, a.to_account_id(), 700000000))
+				.chain(
+					AccountKeyring::iter().map(|a| (2, a.to_account_id(), 700000000))
+				).collect::<Vec<_>>()
 		},
 	})
 }

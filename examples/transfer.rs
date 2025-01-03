@@ -2,14 +2,7 @@
 //! represents a transfer of the wrapped assets, and then unwraps the assets by
 //! the new owner.
 
-use opto::{
-	self,
-	repr::Compact,
-	Hashable,
-	MutatingClient,
-	ReadOnlyClient,
-	Transition,
-};
+use opto::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

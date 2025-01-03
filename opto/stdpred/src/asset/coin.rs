@@ -33,10 +33,14 @@ pub fn coin(
 	ensure!(is_policy(&ctx));
 	ensure!(!is_ephemeral(&ctx));
 	ensure!(is_only_policy_of_this_type(&ctx));
-	ensure!((1..=16).contains(&params.len()));
-	ensure!(u64::decode(&mut ctx.object.data.as_slice()).is_ok());
+	ensure!(u32::decode(&mut &params[..])
+		.map(|asset_id| asset_id != 0)
+		.unwrap_or(false));
+	ensure!(u64::decode(&mut ctx.object.data.as_slice())
+		.map(|balance| balance != 0)
+		.unwrap_or(false));
 
-	if ctx.location == Location::Input {
+	if is_input(&ctx) {
 		// if the coin is an input, then it should be valid because it must have
 		// passed all the checks in the previous state when it was an output.
 		return true;
@@ -52,6 +56,7 @@ pub fn coin(
 		return false;
 	};
 
+	// no new coins were created in this transition
 	ensure!(input_balance >= output_balance);
 
 	true
@@ -69,7 +74,7 @@ fn total_balance(
 	ctx: &Context<'_, impl Environment>,
 	set: &[AsObject<Expanded>],
 	coinid: &[u8],
-) -> Result<u64, Error> {
+) -> Result<u128, Error> {
 	set
 		.iter()
 		.filter(|obj| {
@@ -78,11 +83,11 @@ fn total_balance(
 				.iter()
 				.any(|p| p.id == ctx.predicate_id() && p.params == coinid)
 		})
-		.try_fold(0u64, |acc, object| {
+		.try_fold(0u128, |acc, object| {
 			acc
 				.checked_add(
-					u64::decode(&mut object.data.as_slice())
-						.map_err(|_| Error::Decode)?,
+					u64::decode(&mut object.data.as_slice()).map_err(|_| Error::Decode)?
+						as u128,
 				)
 				.ok_or(Error::ValueOverflow)
 		})

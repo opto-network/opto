@@ -1,7 +1,10 @@
 use {
-	super::{predicate::PredicatePattern, Filter},
-	crate::{Expression, Op, Predicate},
-	alloc::{vec, vec::Vec},
+	super::{
+		predicate::{IntoPredicatePattern, PredicatePattern},
+		Filter,
+	},
+	crate::{Expression, Op, Predicate, PredicateId},
+	alloc::vec::Vec,
 	core::ops::Range,
 	scale::{Decode, Encode, Input},
 };
@@ -31,7 +34,7 @@ impl<F: Filter + PartialEq> PartialEq for UnlockPattern<F> {
 
 impl<F: Filter + Encode> Encode for UnlockPattern<F> {
 	fn encode(&self) -> Vec<u8> {
-		let mut result = vec![];
+		let mut result = alloc::vec![];
 		result.extend_from_slice(&self.expression.encode());
 		result.extend_from_slice(&self.mode.encode());
 		result
@@ -100,7 +103,7 @@ impl<F: Filter> UnlockPattern<F> {
 		};
 
 		let offset = range.start;
-		let mut captures = vec![];
+		let mut captures = alloc::vec![];
 
 		for i in range {
 			let pattern = &pattern_prefix[i - offset];
@@ -220,6 +223,12 @@ impl<F: Filter> IntoUnlockPattern<F> for Expression<PredicatePattern<F>> {
 impl<F: Filter> IntoUnlockPattern<F> for PredicatePattern<F> {
 	fn into_unlock_pattern(self) -> UnlockPattern<F> {
 		UnlockPattern::exact(Expression::from(self))
+	}
+}
+
+impl<F: Filter> IntoUnlockPattern<F> for PredicateId {
+	fn into_unlock_pattern(self) -> UnlockPattern<F> {
+		UnlockPattern::exact(Expression::from(self.into_predicate_pattern()))
 	}
 }
 

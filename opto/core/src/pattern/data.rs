@@ -78,12 +78,3 @@ impl<F: Filter> IntoDataPattern<F> for DataPattern<F> {
 		self
 	}
 }
-
-impl<F: Filter> IntoDataPattern<F> for F {
-	fn into_data_pattern(self) -> DataPattern<F> {
-		DataPattern::<F> {
-			filter: self,
-			capture: None,
-		}
-	}
-}

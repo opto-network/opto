@@ -11,6 +11,8 @@ pub struct Hot {
 	fn_: HotCaptureFn,
 }
 
+impl private::Sealed for Hot {}
+
 impl Filter for Hot {
 	fn matches(&self, data: &[u8]) -> bool {
 		(self.fn_)(data)

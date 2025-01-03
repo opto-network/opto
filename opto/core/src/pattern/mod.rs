@@ -24,7 +24,7 @@ mod private {
 	pub trait Sealed {}
 }
 
-pub trait Filter: Clone + core::fmt::Debug {
+pub trait Filter: Clone + core::fmt::Debug + private::Sealed {
 	fn any() -> Self;
 	fn matches(&self, data: &[u8]) -> bool;
 }
