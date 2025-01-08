@@ -7,14 +7,14 @@ use {
 		AssetId,
 		Balance,
 	},
-	derive_more::derive::{Deref, From, Into},
+	derive_more::derive::{Deref, Display, From, Into},
 	opto_core::*,
 	scale::Encode,
 	std::collections::HashMap,
 };
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Error<'a> {
+#[derive(Debug, Clone, PartialEq, Display)]
+pub enum Error {
 	/// The input objects list is empty.
 	/// No transfer are going to be possible.
 	NoInputObjects,
@@ -23,7 +23,8 @@ pub enum Error<'a> {
 	/// It could be a valid coin object but not a conventional one and we don't
 	/// support it. E.g. might have few extra policies or different unlock than
 	/// this convention.
-	InvalidInputObject(&'a Object),
+	#[display("invalid input object: {:?}", _0)]
+	InvalidInputObject(Object),
 
 	/// The input objects have different asset ids.
 	/// All inputs must be of the same coin type.
@@ -32,7 +33,8 @@ pub enum Error<'a> {
 	/// that was expected.
 	///
 	/// The expected asset id is the asset id of the first object in the list.
-	DifferentAssetId(&'a Object, AssetId),
+	#[display("expected asset id {:?} but got {:?}", _1, _0)]
+	DifferentAssetId(Object, AssetId),
 
 	/// The input objects have different signers.
 	/// All inputs must be controlled by the same account.
@@ -42,12 +44,15 @@ pub enum Error<'a> {
 	///
 	/// The expected account id is the account id of the first object in the
 	/// list.
-	DifferentSigners(&'a Object, AccountId),
+	#[display("expected signer {:?} but got {:?}", _1, _0)]
+	DifferentSigners(Object, AccountId),
 
 	/// The output balance is greater than the input balance for a given coin
 	/// type.
 	InsufficientInputsBalance,
 }
+
+impl std::error::Error for Error {}
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, From, Into, Deref)]
 struct HashableAccountId(AccountId);
@@ -59,37 +64,45 @@ impl std::hash::Hash for HashableAccountId {
 }
 
 #[derive(Debug, Clone)]
-pub struct CoinTransfer<'a> {
-	inputs: Vec<&'a Object>,
+pub struct CoinTransfer {
+	inputs: Vec<Object>,
 	beneficiaries: HashMap<HashableAccountId, u128>,
 }
 
-impl<'a> CoinTransfer<'a> {
-	pub fn from_inputs(
-		objects: impl Iterator<Item = &'a Object>,
-	) -> Result<Self, Error<'a>> {
-		let mut inputs = Vec::new();
+impl CoinTransfer {
+	pub fn with_inputs(
+		inputs: impl IntoIterator<Item = Object>,
+	) -> Result<Self, Error> {
+		let inputs = inputs.into_iter().collect::<Vec<_>>();
+
+		if inputs.is_empty() {
+			return Err(Error::NoInputObjects);
+		}
 
 		let mut seen_signer: Option<CoinOwner> = None;
 		let mut seen_asset_id: Option<CoinAsset> = None;
 
-		for input in objects {
+		// verify all inputs
+		for input in &inputs {
 			// how much
-			let _ = CoinBalance::try_from(input)
-				.map_err(|_| Error::InvalidInputObject(input))?;
+			if CoinBalance::try_from(input).is_err() {
+				return Err(Error::InvalidInputObject(input.clone()));
+			}
 
 			// of what
-			let asset_id = CoinAsset::try_from(input)
-				.map_err(|_| Error::InvalidInputObject(input))?;
+			let Ok(asset_id) = CoinAsset::try_from(input) else {
+				return Err(Error::InvalidInputObject(input.clone()));
+			};
 
 			// who controls it
-			let owner = CoinOwner::try_from(input)
-				.map_err(|_| Error::InvalidInputObject(input))?;
+			let Ok(owner) = CoinOwner::try_from(input) else {
+				return Err(Error::InvalidInputObject(input.clone()));
+			};
 
 			// ensure they are all the same coin type
 			if let Some(ref seen_asset_id) = seen_asset_id {
 				if *seen_asset_id != asset_id {
-					return Err(Error::DifferentAssetId(input, **seen_asset_id));
+					return Err(Error::DifferentAssetId(input.clone(), **seen_asset_id));
 				}
 			} else {
 				seen_asset_id = Some(asset_id);
@@ -98,17 +111,14 @@ impl<'a> CoinTransfer<'a> {
 			// ensure they are all controlled by the same account
 			if let Some(ref seen_signer) = seen_signer {
 				if *seen_signer != owner {
-					return Err(Error::DifferentSigners(input, (**seen_signer).clone()));
+					return Err(Error::DifferentSigners(
+						input.clone(),
+						(**seen_signer).clone(),
+					));
 				}
 			} else {
 				seen_signer = Some(owner);
 			}
-
-			inputs.push(input);
-		}
-
-		if inputs.is_empty() {
-			return Err(Error::NoInputObjects);
 		}
 
 		Ok(Self {
@@ -131,16 +141,16 @@ impl<'a> CoinTransfer<'a> {
 	/// summed.
 	pub fn add_beneficiary(
 		mut self,
-		beneficiary: AccountId,
+		beneficiary: &AccountId,
 		amount: Balance,
-	) -> Result<Self, Error<'a>> {
+	) -> Result<Self, Error> {
 		let amount = amount as u128;
 
 		let available_balance = self
 			.inputs
 			.iter()
 			.map(|input| {
-				*CoinBalance::try_from(*input) //
+				*CoinBalance::try_from(input) //
 					.expect("validated at construction") as u128
 			})
 			.sum::<u128>();
@@ -154,7 +164,7 @@ impl<'a> CoinTransfer<'a> {
 
 		*self
 			.beneficiaries
-			.entry(HashableAccountId(beneficiary))
+			.entry(HashableAccountId(beneficiary.clone()))
 			.or_default() += amount;
 
 		Ok(self)
@@ -168,13 +178,13 @@ impl<'a> CoinTransfer<'a> {
 	/// owner of the input coins account.
 	///
 	/// The resulting transition may not consume all input objects.
-	pub fn transition(self) -> Result<Transition, Error<'a>> {
+	pub fn transition(self) -> Result<Transition, Error> {
 		let mut outputs = Vec::new();
 
-		let asset_id = *CoinAsset::try_from(self.inputs[0]) //
+		let asset_id = *CoinAsset::try_from(&self.inputs[0]) //
 			.expect("validated at construction");
 
-		let sender_account = CoinOwner::try_from(self.inputs[0]) //
+		let sender_account = CoinOwner::try_from(&self.inputs[0]) //
 			.expect("validated at construction");
 
 		let mut total_commitments = 0u128;
@@ -193,7 +203,7 @@ impl<'a> CoinTransfer<'a> {
 						opto_stdpred::ids::COIN.params(asset_id),
 						opto_stdpred::ids::NONCE.into(),
 					],
-					unlock: opto_stdpred::ids::SR25519.params(&account.0).into(),
+					unlock: opto_stdpred::ids::SR25519.params(account.0 .0).into(),
 					data: output_amount.encode(),
 				};
 
@@ -209,14 +219,14 @@ impl<'a> CoinTransfer<'a> {
 		// drain smaller inputs first
 		let mut inputs = self.inputs.into_iter().collect::<Vec<_>>();
 		inputs.sort_by_key(|input| {
-			*CoinBalance::try_from(*input) //
+			*CoinBalance::try_from(input) //
 				.expect("validated at construction")
 		});
 
 		let mut consumed = Vec::new();
 
 		while let Some(next) = inputs.pop() {
-			let balance = *CoinBalance::try_from(next) //
+			let balance = *CoinBalance::try_from(&next) //
 				.expect("validated at construction") as u128;
 
 			if balance <= remaining_commitments {
@@ -224,7 +234,7 @@ impl<'a> CoinTransfer<'a> {
 				consumed.push(next);
 				continue;
 			} else {
-				inputs.push(next);
+				consumed.push(next);
 
 				let remainder = balance - remaining_commitments;
 
@@ -236,7 +246,7 @@ impl<'a> CoinTransfer<'a> {
 						opto_stdpred::ids::NONCE.into(),
 					],
 					unlock: opto_stdpred::ids::SR25519.params(sender_account.0).into(),
-					data: remainder.encode(),
+					data: (remainder as u64).encode(),
 				};
 
 				outputs.push(output);
@@ -256,10 +266,10 @@ impl<'a> CoinTransfer<'a> {
 	}
 }
 
-impl<'a> TryFrom<CoinTransfer<'a>> for Transition {
-	type Error = Error<'a>;
+impl TryFrom<CoinTransfer> for Transition {
+	type Error = Error;
 
-	fn try_from(value: CoinTransfer<'a>) -> Result<Self, Self::Error> {
+	fn try_from(value: CoinTransfer) -> Result<Self, Self::Error> {
 		value.transition()
 	}
 }

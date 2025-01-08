@@ -2,7 +2,7 @@
 //! represents a transfer of the wrapped assets, and then unwraps the assets by
 //! the new owner.
 
-use opto::*;
+use {conventions::CoinTransfer, opto::*};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -34,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
 	);
 
 	let wrapped = client.wrap(&alice, asset_id, amount, None).await?;
-	println!("Wrapped {}: {:?}", wrapped.digest(), wrapped);
+	println!("Wrapped {}: {:#?}", wrapped.digest(), wrapped);
 
 	println!(
 		"Alice USDT balance: {}",
@@ -45,31 +45,14 @@ async fn main() -> anyhow::Result<()> {
 		client.asset_balance(&charlie_account_id, asset_id).await?
 	);
 
-	let wrapped_digest = wrapped.digest();
-
-	// create a state transition that changes the unlock expression
-	// of the wrapped asset to a new owner
-	let output = opto::Object {
-		policies: wrapped.policies,
-		unlock: opto::Predicate {
-			id: opto::stdpred::ids::SR25519,
-			params: charlie.public_key().0.to_vec(),
-		}
-		.into(),
-		data: wrapped.data,
-	};
-
-	let transition = Transition::<Compact> {
-		inputs: vec![wrapped_digest],
-		ephemerals: vec![],
-		outputs: vec![output],
-	}
-	.set_nonces()
-	.sign(&alice);
+	let transition = CoinTransfer::with_inputs([wrapped])?
+		.add_beneficiary(&charlie_account_id, amount / 3)?
+		.transition()?
+		.sign(&alice);
 
 	let output_digest = transition.outputs[0].digest();
 
-	println!("Transition: {:?}", transition);
+	println!("Transition: {:#?}", transition);
 	client.apply(&charlie, vec![transition]).await?;
 
 	client.unwrap(&charlie, &output_digest).await?;

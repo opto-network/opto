@@ -104,7 +104,7 @@ impl TryFrom<&Object> for CoinAsset {
 				.iter()
 				.find_map(|p| {
 					if p.id == opto_stdpred::ids::COIN {
-						Some(AssetId::decode(&mut &object.data[..]).ok()?)
+						Some(AssetId::decode(&mut &p.params[..]).ok()?)
 					} else {
 						None
 					}

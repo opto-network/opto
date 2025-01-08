@@ -15,14 +15,6 @@ description = "Opto SDK Examples"
 name = "example-transfer"
 path = "transfer.rs"
 
-[[bin]]
-name = "example-zk-solver"
-path = "zk-solver.rs"
-
-[[bin]]
-name = "example-zk-patron"
-path = "zk-patron.rs"
-
 [dependencies]
 opto = { path = "../opto", features = [
   "offchain-sdk",
