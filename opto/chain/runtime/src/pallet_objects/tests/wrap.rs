@@ -1,24 +1,14 @@
 use {
-	super::{
-		utils::create_asset,
-		COIN_PREDICATE,
-		DEFAULT_SIGNATURE_PREDICATE,
-		*,
-	},
+	super::{utils::create_asset, *},
 	crate::{
 		pallet_objects::{
 			self,
-			tests::{
-				utils::{mint_asset, mint_native_token},
-				NONCE_PREDICATE,
-				PREIMAGE_PREDICATE,
-				VAULT,
-			},
+			tests::utils::{mint_asset, mint_native_token},
 		},
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{Predicate, Expression, Hashable, Object, Op, PredicateId},
+	opto_core::{Expression, Hashable, Object, Op, Predicate, PredicateId},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -48,16 +38,16 @@ fn wrap_asset_into_object_default_unlock() {
 	let expected_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: nonce.to_vec(),
 			},
 		],
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		})]
 		.try_into()
@@ -125,7 +115,7 @@ fn wrap_asset_into_object_default_unlock() {
 				.expect("object not found");
 
 		assert_eq!(object.instance_count, 1);
-		assert_eq!(object.object, expected_object);
+		assert_eq!(object.content, expected_object);
 
 		System::assert_has_event(
 			pallet_objects::Event::StateTransitioned {
@@ -160,11 +150,11 @@ fn wrap_asset_into_object_custom_unlock() {
 	let custom_unlock_expression: Expression<Predicate> = vec![
 		Op::Or,
 		Op::Predicate(Predicate {
-			id: PREIMAGE_PREDICATE,
+			id: stdpred::ids::BLAKE2B_256,
 			params: b"random-preimage".digest().encode(),
 		}),
 		Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		}),
 	]
@@ -182,11 +172,11 @@ fn wrap_asset_into_object_custom_unlock() {
 	let expected_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: nonce.to_vec(),
 			},
 		],
@@ -254,7 +244,7 @@ fn wrap_asset_into_object_custom_unlock() {
 				.expect("object not found");
 
 		assert_eq!(object.instance_count, 1);
-		assert_eq!(object.object, expected_object);
+		assert_eq!(object.content, expected_object);
 
 		System::assert_has_event(
 			pallet_objects::Event::StateTransitioned {
@@ -293,7 +283,7 @@ fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
 			params: b"random-preimage".digest().encode(),
 		}),
 		Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Alice.to_account_id().encode(),
 		}),
 	]
@@ -311,11 +301,11 @@ fn wrap_asset_into_object_custom_unlock_not_installed_predicate() {
 	let expected_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: nonce.to_vec(),
 			},
 		],

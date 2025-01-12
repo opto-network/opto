@@ -1,11 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-use {
-	super::*,
-	frame::{prelude::*, traits::StaticLookup},
-	frame_system::RawOrigin,
-};
+use {super::*, frame::traits::StaticLookup, frame_system::RawOrigin};
 
 pub fn unwrap<T: Config<I> + pallet_assets::Config<I>, I: 'static>(
 	origin: OriginFor<T>,
@@ -14,7 +10,7 @@ pub fn unwrap<T: Config<I> + pallet_assets::Config<I>, I: 'static>(
 	let beneficiary = ensure_signed(origin)?;
 
 	// get & remove from state
-	let mut object = consume_input::<T, I>(digest)?;
+	let mut object = consume_input::<T, I>(digest, &beneficiary)?;
 
 	Pallet::<T, I>::deposit_event(Event::StateTransitioned {
 		transition: Transition {
@@ -57,7 +53,7 @@ pub fn unwrap<T: Config<I> + pallet_assets::Config<I>, I: 'static>(
 
 	// transfer the asset to the beneficiary from the vault
 	pallet_assets::Pallet::<T, I>::transfer(
-		RawOrigin::Signed(T::VaultAccount::get()).into(),
+		RawOrigin::Signed(T::SystemVaultAccount::get()).into(),
 		asset_id.into(),
 		T::Lookup::unlookup(beneficiary),
 		amount,

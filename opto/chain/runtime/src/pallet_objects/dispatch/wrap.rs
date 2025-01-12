@@ -4,7 +4,7 @@ use alloc::vec;
 use {
 	super::*,
 	frame::{
-		prelude::{frame_system, *},
+		prelude::frame_system,
 		traits::{StaticLookup, Zero},
 	},
 	sp_core::blake2_64,
@@ -20,7 +20,7 @@ pub fn wrap<T: Config<I>, I: 'static>(
 	ensure!(!amount.is_zero(), Error::<T, I>::ZeroWrapAmount);
 
 	let vault = <T as frame_system::Config>::Lookup::unlookup(
-		T::VaultAccount::get(), //
+		T::SystemVaultAccount::get(), //
 	);
 
 	pallet_assets::Pallet::<T, I>::transfer(

@@ -2,6 +2,7 @@
 resolver = "2"
 members = ["opto", "opto/stdpred", "examples", "examples/nft"]
 
+
 [workspace.package]
 version = "0.1.0"
 rust-version = "1.83"

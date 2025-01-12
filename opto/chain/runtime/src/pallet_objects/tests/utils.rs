@@ -2,11 +2,7 @@
 
 use {
 	super::*,
-	crate::{
-		interface::AccountId,
-		pallet_objects::{self, tests::NONCE_PREDICATE},
-		*,
-	},
+	crate::{interface::AccountId, pallet_objects, *},
 	frame::{
 		testing_prelude::*,
 		traits::{fungible::Mutate, fungibles::Inspect},
@@ -133,16 +129,16 @@ pub fn create_asset_object(
 	let expected_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: asset_id.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: nonce.to_vec(),
 			},
 		],
 		unlock: Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: owner.encode(),
 		}
 		.into(),
@@ -173,10 +169,33 @@ pub fn next_block() {
 	run_to_block(System::block_number() + 1);
 }
 
+pub fn advance_n_blocks(n: u32) {
+	run_to_block(System::block_number() + n);
+}
+
+pub fn advance_block_and_exec_fn(f: impl FnOnce()) {
+	if System::block_number() > 0 {
+		System::on_finalize(System::block_number());
+		pallet_timestamp::Pallet::<Runtime>::on_finalize(System::block_number());
+		pallet_objects::Pallet::<Runtime>::on_finalize(System::block_number());
+		f();
+	}
+
+	System::reset_events();
+	System::set_block_number(System::block_number() + 1);
+	System::on_initialize(System::block_number());
+
+	// in tests each block is 6 seconds (6000 milliseconds)
+	pallet_timestamp::Pallet::<Runtime>::set_timestamp(
+		(System::block_number() * 6_000) as u64,
+	);
+
+	pallet_objects::Pallet::<Runtime>::on_initialize(System::block_number());
+}
+
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
 		if System::block_number() > 0 {
-			pallet_objects::Pallet::<Runtime>::on_finalize(System::block_number());
 			System::on_finalize(System::block_number());
 			pallet_timestamp::Pallet::<Runtime>::on_finalize(System::block_number());
 			pallet_objects::Pallet::<Runtime>::on_finalize(System::block_number());
@@ -215,11 +234,17 @@ pub fn fixup_nonces_expanded(transition: &mut Transition<Expanded>) {
 
 	let inputs_hash: [u8; 8] = hasher.finalize().into();
 	for (ix, object) in transition.outputs.iter_mut().enumerate() {
-		if let Some(nonce_policy) =
-			object.policies.iter_mut().find(|p| p.id == NONCE_PREDICATE)
+		if let Some(nonce_policy) = object
+			.policies
+			.iter_mut()
+			.find(|p| p.id == stdpred::ids::NONCE)
 		{
-			let nonce =
-				hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+			let nonce = hash_concat(&[
+				&inputs_hash,
+				(ix as u64).to_le_bytes().as_slice(),
+				object.unlock.digest().as_slice(),
+				&object.data,
+			]);
 			nonce_policy.params = nonce.to_le_bytes().to_vec();
 		}
 	}
@@ -245,11 +270,17 @@ pub fn fixup_nonces_compact(transition: &mut Transition<Compact>) {
 
 	let inputs_hash: [u8; 8] = hasher.finalize().into();
 	for (ix, object) in transition.outputs.iter_mut().enumerate() {
-		if let Some(nonce_policy) =
-			object.policies.iter_mut().find(|p| p.id == NONCE_PREDICATE)
+		if let Some(nonce_policy) = object
+			.policies
+			.iter_mut()
+			.find(|p| p.id == stdpred::ids::NONCE)
 		{
-			let nonce =
-				hash_concat(&[&inputs_hash, (ix as u64).to_le_bytes().as_slice()]);
+			let nonce = hash_concat(&[
+				&inputs_hash,
+				(ix as u64).to_le_bytes().as_slice(),
+				object.unlock.digest().as_slice(),
+				&object.data,
+			]);
 			nonce_policy.params = nonce.to_le_bytes().to_vec();
 		}
 	}
@@ -260,7 +291,7 @@ pub fn sign(keyring: AccountKeyring, transition: &mut Transition<Compact>) {
 	let signature = keyring.sign(message.as_slice());
 	transition.ephemerals.push(Object {
 		policies: vec![Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: keyring.to_account_id().encode(),
 		}],
 		unlock: Predicate {

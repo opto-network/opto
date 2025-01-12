@@ -3,7 +3,7 @@ use alloc::{collections::BTreeSet, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::BTreeSet;
 
-use {super::*, frame::prelude::*, ipld_nostd::CarReader};
+use {super::*, ipld_nostd::CarReader};
 
 pub fn install<T: Config<I>, I: 'static>(
 	origin: OriginFor<T>,
@@ -18,7 +18,7 @@ pub fn install<T: Config<I>, I: 'static>(
 		install_one_predicate::<T, I>(bytecode_or_car, is_invoked_by_root)?;
 	} else {
 		// check if the archive is within the allowed size limit. applies only
-		// to non-root calls
+		// to non-root calls. Genesis archive is allowed to be larger.
 		if !is_invoked_by_root {
 			ensure!(
 				bytecode_or_car.len() <= T::MaximumArchiveSize::get() as usize,

@@ -7,7 +7,7 @@
 //! the state transitions. This library provides native implementations of those
 //! predicates that can be used in tests and native compute nodes.
 
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 
 use opto_core::env::Environment;
 
@@ -39,6 +39,7 @@ pub fn native_impl_factory<E: Environment + 'static>(
 		ids::CONSTANT => util::constant,
 		ids::NONCE => util::nonce,
 		ids::UNIQUE => util::unique,
+		ids::RESERVE => util::reserve,
 
 		// crypto
 		ids::SR25519 => crypto::sr25519,

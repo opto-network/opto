@@ -106,7 +106,7 @@ impl<'p> BuildTarget<'p> {
       [dependencies]
       {} = {{ path = "{}", features = [{}] }}
       wee_alloc = "0.4.5"
-       
+
       [profile.release]
       opt-level = "z"
       lto = true

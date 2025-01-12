@@ -5,9 +5,6 @@ pub enum BuildMode {
 #[cfg(target_arch = "wasm32")]
 pub fn build(_: BuildMode) {}
 
-#[cfg(target_arch = "wasm32")]
-pub fn build_in_release() {}
-
 #[cfg(not(target_arch = "wasm32"))]
 mod bundle;
 
@@ -67,7 +64,6 @@ pub fn build(when: BuildMode) {
 	bundle.write(output_archive).unwrap();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub fn build_in_release() {
 	build(BuildMode::Release);
 }

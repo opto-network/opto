@@ -7,10 +7,7 @@ use {
 		interface::AssetId,
 		pallet_objects::{
 			self,
-			tests::{
-				utils::{fixup_nonces_compact, run_to_block, sign},
-				AFTER_TIME_PREDICATE,
-			},
+			tests::utils::{fixup_nonces_compact, run_to_block, sign},
 			Error,
 		},
 		Runtime,
@@ -18,10 +15,10 @@ use {
 		System,
 		Timestamp,
 	},
+	core::time::Duration,
 	frame::traits::UnixTime,
 	frame_support::{assert_noop, assert_ok},
-	opto_core::{Predicate, Hashable, Object, Transition},
-	scale::Encode,
+	opto_core::{Hashable, Object, PredicateIdExt, Transition},
 	sp_keyring::AccountKeyring,
 };
 
@@ -31,7 +28,7 @@ fn time_based_unlock() {
 		const ASSET_ID: AssetId = 10;
 		// in the test runtime the timestamp is always block_no * 6 seconds
 		const UNLOCK_BLOCK: u32 = 16;
-		const UNLOCK_TIME: u32 = UNLOCK_BLOCK * 6;
+		const UNLOCK_TIME: Duration = Duration::from_secs(UNLOCK_BLOCK as u64 * 6);
 
 		let account = AccountKeyring::Alice.to_account_id();
 
@@ -44,11 +41,7 @@ fn time_based_unlock() {
 			inputs: vec![coin.digest()],
 			ephemerals: vec![], // signature will be attached later
 			outputs: vec![Object {
-				unlock: Predicate {
-					id: AFTER_TIME_PREDICATE,
-					params: UNLOCK_TIME.encode(),
-				}
-				.into(),
+				unlock: stdpred::ids::AFTER_TIME.params(UNLOCK_TIME).into(),
 				..coin
 			}],
 		};
@@ -82,7 +75,7 @@ fn time_based_unlock() {
 		};
 
 		assert!(System::block_number() < UNLOCK_BLOCK);
-		assert!(Timestamp::now().as_secs() < UNLOCK_TIME as u64);
+		assert!(Timestamp::now() < UNLOCK_TIME);
 
 		assert_noop!(
 			pallet_objects::Pallet::<Runtime>::apply(
@@ -95,7 +88,7 @@ fn time_based_unlock() {
 		run_to_block(UNLOCK_BLOCK + 1);
 
 		assert!(System::block_number() >= UNLOCK_BLOCK);
-		assert!(Timestamp::now().as_secs() >= UNLOCK_TIME as u64);
+		assert!(Timestamp::now() >= UNLOCK_TIME);
 
 		// now we are at block 16, so time is 16000,
 		// we should be able to unlock the object

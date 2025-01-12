@@ -1,15 +1,12 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
-use alloc::vec;
-
 #[cfg(any(test, feature = "std"))]
 use wasmi::AsContext;
 use {
 	crate::pallet_objects::{Config, Timestamp, Vrf},
 	core::{marker::PhantomData, time::Duration},
-	frame::prelude::*,
+	frame::{prelude::*, traits::UnixTime},
 	opto_core::{env::Environment, Digest, PredicateId},
 	sp_core::U256,
 	wasmi::{
@@ -52,12 +49,24 @@ impl<T: Config<I>, I: 'static> Environment for OnChainEnvironment<T, I> {
 	}
 
 	fn time_at(&self, block: u32) -> Option<Duration> {
-		let moment = Timestamp::<T, I>::get(block)?;
-		Some(Duration::from_millis(moment))
+		if block == self.block_number() {
+			Some(pallet_timestamp::Pallet::<T>::now())
+		} else {
+			let moment = Timestamp::<T, I>::get(block)?;
+			Some(Duration::from_millis(moment))
+		}
 	}
 
 	fn history_len(&self) -> u32 {
 		T::HistoryLength::get()
+	}
+
+	fn minimum_reservation_deposit(&self) -> u64 {
+		T::MinimumReservationDeposit::get()
+	}
+
+	fn minimum_reservation_duration(&self) -> Duration {
+		Duration::from_millis(T::MinimumReservationDuration::get())
 	}
 }
 
@@ -85,6 +94,14 @@ impl Environment for ValidationEnv {
 	fn vrf_at(&self, _: u32) -> Option<opto_core::Digest> {
 		unimplemented!()
 	}
+
+	fn minimum_reservation_deposit(&self) -> u64 {
+		unimplemented!()
+	}
+
+	fn minimum_reservation_duration(&self) -> Duration {
+		unimplemented!()
+	}
 }
 
 pub fn attach_syscalls<'e, E: Environment + 'e>(
@@ -107,7 +124,7 @@ pub fn attach_syscalls<'e, E: Environment + 'e>(
 				.data()
 				.time_at(block)
 				.unwrap_or(Duration::ZERO)
-				.as_secs() as u32
+				.as_millis() as u64
 		},
 	);
 
@@ -119,6 +136,16 @@ pub fn attach_syscalls<'e, E: Environment + 'e>(
 	let block_number =
 		Func::wrap(store.as_context_mut(), |caller: Caller<'_, &'e E>| {
 			caller.data().block_number()
+		});
+
+	let minimum_reservation_deposit =
+		Func::wrap(store.as_context_mut(), |caller: Caller<'_, &'e E>| {
+			caller.data().minimum_reservation_deposit()
+		});
+
+	let minimum_reservation_duration =
+		Func::wrap(store.as_context_mut(), |caller: Caller<'_, &'e E>| {
+			caller.data().minimum_reservation_duration().as_millis() as u64
 		});
 
 	#[cfg(any(test, feature = "std"))]
@@ -160,6 +187,16 @@ pub fn attach_syscalls<'e, E: Environment + 'e>(
 		.define("env", "time_at", time_at)?
 		.define("env", "history_len", history_len)?
 		.define("env", "block_number", block_number)?
+		.define(
+			"env",
+			"minimum_reservation_deposit",
+			minimum_reservation_deposit,
+		)?
+		.define(
+			"env",
+			"minimum_reservation_duration",
+			minimum_reservation_duration,
+		)?
 		.define("env", "debug", debug)?
 		.instantiate(store.as_context_mut(), module)?
 		.start(store.as_context_mut())

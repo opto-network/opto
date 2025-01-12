@@ -1,6 +1,6 @@
 use {
 	crate::{
-		interface,
+		interface::{self, AccountId},
 		pallet_objects,
 		Balances,
 		Block,
@@ -16,7 +16,7 @@ use {
 		VERSION,
 	},
 	frame::{self, prelude::*, runtime::prelude::*},
-	opto_core::PredicateId,
+	sp_runtime::AccountId32,
 };
 
 parameter_types! {
@@ -29,6 +29,7 @@ impl frame_system::Config for Runtime {
 	// Use the account data from the balances pallet
 	type AccountData =
 		pallet_balances::AccountData<<Runtime as pallet_balances::Config>::Balance>;
+	type AccountId = AccountId32;
 	type Block = Block;
 	type Version = Version;
 }
@@ -70,39 +71,12 @@ impl pallet_assets::Config for Runtime {
 parameter_types! {
 	// use an account that has no private key. This is the account that will
 	// own assets that are wrapped into objects.
-	pub const VaultAccount: interface::AccountId = interface::AccountId::new([0u8; 32]);
-
-	/// Defined in the standard predicate library.
-	pub const CoinPolicyPredicate: PredicateId = PredicateId(1000);
-
-	/// Defined in the standard predicate library.
-	pub const NoncePolicyPredicate: PredicateId = PredicateId(101);
-
-	/// Defined in the standard predicate library.
-	pub const UniquePolicyPredicate: PredicateId = PredicateId(102);
-
-	/// Defined in the standard predicate library.
-	pub const SignatureVerifyPredicate: PredicateId = PredicateId(201);
+	pub const SystemVaultAccount: AccountId = AccountId::new([0u8; 32]);
 }
 
 #[derive_impl(pallet_objects::config::TestnetDefaultConfig)]
 impl pallet_objects::Config for Runtime {
-	/// The predicate id of the `coin` policy.
-	/// This policy is part of the standard predicate library and is
-	/// known at genesis time.
-	type CoinPolicyPredicate = CoinPolicyPredicate;
-	/// The predicate id of the signature verification policy that is used when
-	/// wrapping assets into objects and not specifying a custom unlock
-	/// expression.
-	///
-	/// By default it is sr25519 signature verification.
-	///
-	/// When an object is unwrapped into an asset and no extra ephemeral objects
-	/// are provided, the `pallet_objects` module will check if the signer of the
-	/// transaction is the same as the public key in the object unlock expression
-	/// if the unlock expression is Sr25519(signer).
-	type DefaultSignatureVerifyPredicate = SignatureVerifyPredicate;
-	type NoncePolicyPredicate = NoncePolicyPredicate;
-	type UniquePolicyPredicate = UniquePolicyPredicate;
-	type VaultAccount = VaultAccount;
+	type Currency = Balances;
+	/// The account that will own assets that are wrapped into objects.
+	type SystemVaultAccount = SystemVaultAccount;
 }

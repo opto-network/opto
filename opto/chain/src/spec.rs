@@ -62,6 +62,10 @@ fn devnet_genesis() -> Value {
 		"balances": BalancesConfig { balances },
 		"sudo": SudoConfig { key: Some(AccountKeyring::Alice.to_account_id()) },
 		"objects": ObjectsConfig {
+			// if this file is not present during build and the build fails, ensure
+			// that stdpred is built with archive feature first. This will generate the
+			// file in the target directory.
+			// `cargo build -p opto-stdpred --release --features=archive`
 			stdpred: include_bytes!("../../../target/opto-stdpred.car").to_vec(),
 			objects: vec![],
 			vrf_seed: Some(Digest::compute(b"opto")),

@@ -38,14 +38,35 @@ pub trait Environment {
 			.time_at(self.block_number())
 			.expect("Time value must always be available for the current block")
 	}
+
+	/// The minimum deposit required to reserve an object.
+	fn minimum_reservation_deposit(&self) -> u64;
+
+	/// The minimum duration for an object reservation.
+	fn minimum_reservation_duration(&self) -> Duration;
 }
 
 #[cfg(any(test, feature = "test"))]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct StaticEnvironment {
 	pub block_number: u32,
 	pub vrfs: alloc::collections::BTreeMap<u32, Digest>,
 	pub times: alloc::collections::BTreeMap<u32, Duration>,
+	pub minimum_reservation_deposit: u64,
+	pub minimum_reservation_duration: Duration,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl Default for StaticEnvironment {
+	fn default() -> Self {
+		Self {
+			block_number: 0,
+			vrfs: Default::default(),
+			times: Default::default(),
+			minimum_reservation_deposit: 100,
+			minimum_reservation_duration: Duration::from_secs(12),
+		}
+	}
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -64,5 +85,13 @@ impl Environment for StaticEnvironment {
 
 	fn history_len(&self) -> u32 {
 		0
+	}
+
+	fn minimum_reservation_deposit(&self) -> u64 {
+		self.minimum_reservation_deposit
+	}
+
+	fn minimum_reservation_duration(&self) -> Duration {
+		self.minimum_reservation_duration
 	}
 }

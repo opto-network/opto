@@ -3,12 +3,8 @@ use {
 	crate::{
 		pallet_objects::{
 			self,
-			tests::{
-				utils::{create_asset, mint_asset, mint_native_token},
-				NONCE_PREDICATE,
-				VAULT,
-			},
-			StoredObject,
+			model::ActiveObject,
+			tests::utils::{create_asset, mint_asset, mint_native_token},
 		},
 		*,
 	},
@@ -36,17 +32,17 @@ fn unwrap_object_with_nonce() {
 	let wrapped_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: nonce.encode(),
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
 		.try_into()
@@ -77,8 +73,9 @@ fn unwrap_object_with_nonce() {
 
 		pallet_objects::Objects::<Runtime>::insert(
 			wrapped_object.digest(),
-			StoredObject {
-				object: wrapped_object.clone(),
+			ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			},
 		);
@@ -86,8 +83,9 @@ fn unwrap_object_with_nonce() {
 		assert_eq!(pallet_objects::Objects::<Runtime>::iter().count(), 1);
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(wrapped_object.digest()),
-			Some(StoredObject {
-				object: wrapped_object.clone(),
+			Some(ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			})
 		);
@@ -148,12 +146,12 @@ fn unwrap_object_without_nonce() {
 
 	let wrapped_object = Object {
 		policies: vec![Predicate {
-			id: COIN_PREDICATE,
+			id: stdpred::ids::COIN,
 			params: ASSET_ID.encode(),
 		}],
 		data: WRAPPED_AMOUNT.encode(),
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
 		.try_into()
@@ -184,8 +182,9 @@ fn unwrap_object_without_nonce() {
 
 		pallet_objects::Objects::<Runtime>::insert(
 			wrapped_object.digest(),
-			StoredObject {
-				object: wrapped_object.clone(),
+			ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			},
 		);
@@ -193,8 +192,9 @@ fn unwrap_object_without_nonce() {
 		assert_eq!(pallet_objects::Objects::<Runtime>::iter().count(), 1);
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(wrapped_object.digest()),
-			Some(StoredObject {
-				object: wrapped_object.clone(),
+			Some(ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			})
 		);
@@ -255,12 +255,12 @@ fn unwrap_object_invalid_recipient() {
 
 	let wrapped_object = Object {
 		policies: vec![Predicate {
-			id: COIN_PREDICATE,
+			id: stdpred::ids::COIN,
 			params: ASSET_ID.encode(),
 		}],
 		data: WRAPPED_AMOUNT.encode(),
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Charlie.to_account_id().encode(),
 		})]
 		.try_into()
@@ -291,8 +291,9 @@ fn unwrap_object_invalid_recipient() {
 
 		pallet_objects::Objects::<Runtime>::insert(
 			wrapped_object.digest(),
-			StoredObject {
-				object: wrapped_object.clone(),
+			ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			},
 		);
@@ -300,8 +301,9 @@ fn unwrap_object_invalid_recipient() {
 		assert_eq!(pallet_objects::Objects::<Runtime>::iter().count(), 1);
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(wrapped_object.digest()),
-			Some(StoredObject {
-				object: wrapped_object.clone(),
+			Some(ActiveObject {
+				content: wrapped_object.clone(),
+				reservations: vec![],
 				instance_count: 1,
 			})
 		);
@@ -360,16 +362,16 @@ fn wrap_and_unwrap() {
 		let expected_object = Object {
 			policies: vec![
 				Predicate {
-					id: COIN_PREDICATE,
+					id: stdpred::ids::COIN,
 					params: ASSET_ID.encode(),
 				},
 				Predicate {
-					id: NONCE_PREDICATE,
+					id: stdpred::ids::NONCE,
 					params: object_nonce.to_vec(),
 				},
 			],
 			unlock: vec![Op::Predicate(Predicate {
-				id: DEFAULT_SIGNATURE_PREDICATE,
+				id: stdpred::ids::SR25519,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]
 			.try_into()
@@ -405,7 +407,7 @@ fn wrap_and_unwrap() {
 				.expect("object not found");
 
 		assert_eq!(object.instance_count, 1);
-		assert_eq!(object.object, expected_object);
+		assert_eq!(object.content, expected_object);
 
 		System::assert_has_event(
 			pallet_objects::Event::StateTransitioned {

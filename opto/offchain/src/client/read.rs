@@ -1,6 +1,6 @@
 use {
 	super::*,
-	model::{objects::StoredObject, storage},
+	model::{objects::ActiveObject, storage},
 	opto_core::{Digest, Object, PredicateId},
 	subxt::utils::AccountId32,
 };
@@ -13,7 +13,7 @@ impl ReadOnlyClient for Client {
 		digest: &Digest,
 	) -> Result<Option<(Object, u32)>, Self::Error> {
 		let key = storage().objects().objects(digest);
-		let Some(StoredObject {
+		let Some(ActiveObject {
 			object,
 			instance_count,
 		}) = self.storage().await?.fetch(&key).await?

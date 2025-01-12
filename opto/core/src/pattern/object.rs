@@ -130,7 +130,7 @@ impl<F: Filter> ObjectPattern<F> {
 		self
 	}
 
-	pub fn data<T>(mut self, pattern: impl IntoDataPattern<F>) -> Self {
+	pub fn data(mut self, pattern: impl IntoDataPattern<F>) -> Self {
 		self.data = Some(pattern.into_data_pattern());
 		self
 	}

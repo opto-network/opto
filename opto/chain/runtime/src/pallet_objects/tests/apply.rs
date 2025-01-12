@@ -4,6 +4,7 @@ use {
 		pallet_objects::{
 			self,
 			tests::{
+				model::ActiveObject,
 				utils::{
 					create_asset,
 					fixup_nonces_compact,
@@ -11,15 +12,13 @@ use {
 					mint_native_token,
 					sign,
 				},
-				NONCE_PREDICATE,
 				VAULT,
 			},
-			StoredObject,
 		},
 		*,
 	},
 	frame::testing_prelude::*,
-	opto_core::{repr::Compact, Predicate, Hashable, Object, Op, Transition},
+	opto_core::{repr::Compact, Hashable, Object, Op, Predicate, Transition},
 	sp_core::blake2_64,
 	sp_keyring::AccountKeyring,
 };
@@ -38,17 +37,17 @@ fn wrap_move_unwrap() {
 	let moved_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: vec![], // will be fixed up later
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
 		.try_into()
@@ -98,16 +97,16 @@ fn wrap_move_unwrap() {
 		let wrapped_object = Object {
 			policies: vec![
 				Predicate {
-					id: COIN_PREDICATE,
+					id: stdpred::ids::COIN,
 					params: ASSET_ID.encode(),
 				},
 				Predicate {
-					id: NONCE_PREDICATE,
+					id: stdpred::ids::NONCE,
 					params: object_nonce.to_vec(),
 				},
 			],
 			unlock: vec![Op::Predicate(Predicate {
-				id: DEFAULT_SIGNATURE_PREDICATE,
+				id: stdpred::ids::SR25519,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]
 			.try_into()
@@ -142,7 +141,7 @@ fn wrap_move_unwrap() {
 			.expect("object not found");
 
 		assert_eq!(object.instance_count, 1);
-		assert_eq!(object.object, wrapped_object);
+		assert_eq!(object.content, wrapped_object);
 
 		System::assert_has_event(
 			pallet_objects::Event::StateTransitioned {
@@ -179,9 +178,10 @@ fn wrap_move_unwrap() {
 
 		assert_eq!(
 			pallet_objects::Objects::<Runtime>::get(moved_object_digest),
-			Some(StoredObject {
+			Some(ActiveObject {
 				instance_count: 1,
-				object: moved_object.clone(),
+				reservations: vec![],
+				content: moved_object.clone(),
 			})
 		);
 
@@ -250,17 +250,17 @@ fn move_object_wrong_unlock() {
 	let moved_object = Object {
 		policies: vec![
 			Predicate {
-				id: COIN_PREDICATE,
+				id: stdpred::ids::COIN,
 				params: ASSET_ID.encode(),
 			},
 			Predicate {
-				id: NONCE_PREDICATE,
+				id: stdpred::ids::NONCE,
 				params: vec![], // will be fixed up later
 			},
 		],
 		data: WRAPPED_AMOUNT.encode(),
 		unlock: vec![Op::Predicate(Predicate {
-			id: DEFAULT_SIGNATURE_PREDICATE,
+			id: stdpred::ids::SR25519,
 			params: AccountKeyring::Bob.to_account_id().encode(),
 		})]
 		.try_into()
@@ -312,16 +312,16 @@ fn move_object_wrong_unlock() {
 		let wrapped_object = Object {
 			policies: vec![
 				Predicate {
-					id: COIN_PREDICATE,
+					id: stdpred::ids::COIN,
 					params: ASSET_ID.encode(),
 				},
 				Predicate {
-					id: NONCE_PREDICATE,
+					id: stdpred::ids::NONCE,
 					params: nonce.to_vec(),
 				},
 			],
 			unlock: vec![Op::Predicate(Predicate {
-				id: DEFAULT_SIGNATURE_PREDICATE,
+				id: stdpred::ids::SR25519,
 				params: AccountKeyring::Alice.to_account_id().encode(),
 			})]
 			.try_into()
@@ -356,7 +356,7 @@ fn move_object_wrong_unlock() {
 			.expect("object not found");
 
 		assert_eq!(object.instance_count, 1);
-		assert_eq!(object.object, wrapped_object);
+		assert_eq!(object.content, wrapped_object);
 
 		System::assert_has_event(
 			pallet_objects::Event::StateTransitioned {

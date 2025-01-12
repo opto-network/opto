@@ -1,6 +1,5 @@
 pub use pallet::*;
 use {
-	frame::derive::TypeInfo,
 	opto_core::*,
 	scale::{Decode, Encode},
 	sp_runtime::Vec,
@@ -8,32 +7,33 @@ use {
 
 pub mod config;
 mod dispatch;
+mod model;
 mod vm;
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Encode, Decode, Clone, PartialEq, TypeInfo)]
-pub struct StoredObject {
-	/// The total number of copies of the object that are stored.
-	/// Each time an object is consumed, this value is decremented by 1.
-	/// When the value reaches 0, the object is removed from the storage.
-	pub instance_count: u32,
-	pub object: Object<Predicate, Vec<u8>>,
-}
-
 #[frame::pallet]
 pub mod pallet {
 	use {
 		super::*,
+		crate::interface::Balance,
+		config::WeightInfo,
 		core::marker::PhantomData,
-		frame::prelude::{
-			frame_system,
-			BuildGenesisConfig,
-			DispatchResult,
-			OriginFor,
-			*,
+		frame::{
+			prelude::{
+				frame_system,
+				BuildGenesisConfig,
+				DispatchResult,
+				OptionQuery,
+				OriginFor,
+				ValueQuery,
+				*,
+			},
+			traits::ReservableCurrency,
 		},
+		repr::Compact,
+		sp_runtime::AccountId32,
 	};
 
 	#[cfg(not(feature = "std"))]
@@ -41,8 +41,6 @@ pub mod pallet {
 
 	#[cfg(not(feature = "std"))]
 	use alloc::{vec, vec::Vec};
-
-	use {config::WeightInfo, frame::prelude::OptionQuery, repr::Compact};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
@@ -77,7 +75,9 @@ pub mod pallet {
 
 	#[pallet::config(with_default)]
 	pub trait Config<I: 'static = ()>:
-		frame_system::Config + pallet_assets::Config<I> + pallet_timestamp::Config
+		frame_system::Config<AccountId = AccountId32>
+		+ pallet_assets::Config<I>
+		+ pallet_timestamp::Config
 	{
 		#[pallet::no_default_bounds]
 		type RuntimeEvent: From<Event<Self, I>>
@@ -90,6 +90,17 @@ pub mod pallet {
 
 		/// The maximum number of bytes that a CAR archive can have.
 		type MaximumArchiveSize: Get<u32>;
+
+		/// The minimum amount of balance that is required to reserve an object.
+		/// Objecs may have higher reservation requirements, but not lower than
+		/// this.
+		type MinimumReservationDeposit: Get<Balance>;
+
+		/// The minimum time that an object can be reserved for. By default it is
+		/// configured to be 2 blocks. Make sure that this value is greater than one
+		/// block time because otherwise the reservation will expire before it is
+		/// even created and would be useless in secs.
+		type MinimumReservationDuration: Get<u64>;
 
 		/// The maximum predicate ID that is reserved for system predicates.
 		/// Any predicates installed with IDs equal or less than this value need
@@ -108,21 +119,18 @@ pub mod pallet {
 
 		/// The account that holds assets wrapped into objects
 		#[pallet::no_default]
-		type VaultAccount: Get<Self::AccountId>;
+		type SystemVaultAccount: Get<Self::AccountId>;
+
+		#[pallet::no_default]
+		type Currency: ReservableCurrency<Self::AccountId>;
 
 		/// The predicate that encodes the policy for expressing fungible tokens.
 		/// This is the policy that gets attached to objects that represent wrapped
 		/// assets as defined in pallet_assets.
-		#[pallet::no_default]
 		type CoinPolicyPredicate: Get<PredicateId>;
-
-		#[pallet::no_default]
 		type NoncePolicyPredicate: Get<PredicateId>;
-
-		#[pallet::no_default]
 		type UniquePolicyPredicate: Get<PredicateId>;
-
-		#[pallet::no_default]
+		type ReservePolicyPredicate: Get<PredicateId>;
 		type DefaultSignatureVerifyPredicate: Get<PredicateId>;
 	}
 
@@ -134,6 +142,22 @@ pub mod pallet {
 
 		/// A new predicate was installed
 		PredicateInstalled { id: PredicateId },
+
+		/// An object was reserved by an account.
+		ObjectReserved {
+			object: Digest,
+			by: T::AccountId,
+			until: model::Timestamp,
+		},
+
+		/// An object's reservation was released either by the account that
+		/// reserved it or by the system because the reservation period has
+		/// expired.
+		ReservationReleased {
+			object: Digest,
+			by: T::AccountId,
+			consumed: bool,
+		},
 	}
 
 	#[pallet::pallet]
@@ -145,7 +169,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn object)]
 	pub type Objects<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, Digest, StoredObject, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, Digest, model::ActiveObject, OptionQuery>;
 
 	/// Stores the executable WASM code for all installed predicates.
 	#[pallet::storage]
@@ -174,6 +198,14 @@ pub mod pallet {
 	#[pallet::getter(fn timestamp)]
 	pub type Timestamp<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Blake2_128Concat, u32, u64, OptionQuery>;
+
+	/// Stores the expiration times of all objects that have
+	/// been reserved. The time resolution in the system is
+	/// on second, expirations are rounded to the nearest second.
+	#[pallet::storage]
+	#[pallet::getter(fn reservation_expirations)]
+	pub type ReservationExpirations<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, model::Timestamp, Vec<Digest>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
@@ -221,6 +253,9 @@ pub mod pallet {
 		/// The object that is being consumed is not found.
 		InputObjectNotFound,
 
+		/// The object that is being consumed is reserved.
+		InputObjectReserved,
+
 		/// The object has unlock conditions that cannot be used for object
 		/// unwrapping.
 		InvalidUnlockForUnwrap,
@@ -239,6 +274,20 @@ pub mod pallet {
 		/// An attept to create an object with `UniquePolicyPredicate` that is
 		/// that is already taken by another object with the same unique param.
 		UniqueAlreadyExists,
+
+		/// An attempt to reserve an object without a reserve policy attached to
+		/// it.
+		ReservationNotAllowed,
+
+		/// An attempt to reserve an object that is not allowed to be reserved yet.
+		ReservationNotAllowedYet,
+
+		/// An attempt to reserve an object that is not allowed to be reserved
+		/// anymore.
+		ReservationNotAllowedAnymore,
+
+		/// The reservation policy attached to the object has invalid parameters.
+		InvalidReservationParameters,
 	}
 
 	/// The pallet's dispatchable extrinisicts.
@@ -271,16 +320,27 @@ pub mod pallet {
 		) -> DispatchResult {
 			dispatch::apply::<T, I>(origin, transitions)
 		}
+
+		#[pallet::call_index(4)]
+		pub fn reserve(origin: OriginFor<T>, object: Digest) -> DispatchResult {
+			dispatch::reserve::<T, I>(origin, object)
+		}
 	}
 
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		/// For each new block, update the VRF value before running any state
 		/// transitions. Todo: implement a better way to update the VRF value.
-		///
-		/// For each new block, update the history of blocks timestamps.
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			dispatch::vrf_update::<T, I>(n) + dispatch::timestamp_update::<T, I>(n)
+			dispatch::vrf_update::<T, I>(n)
+		}
+
+		/// For each new block, update the history of blocks timestamps.
+		///
+		/// For each now block, reclaim expired reservations that were not consumed.
+		fn on_finalize(n: BlockNumberFor<T>) {
+			dispatch::timestamp_update::<T, I>(n);
+			dispatch::reclaim_expired_reservations::<T, I>(n);
 		}
 	}
 }

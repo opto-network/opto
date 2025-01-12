@@ -9,6 +9,7 @@ use {
 mod apply;
 mod env;
 mod install;
+mod reserve;
 mod unique;
 mod unwrap;
 mod utils;
@@ -17,40 +18,17 @@ mod wrap;
 #[allow(dead_code)]
 pub(crate) const VAULT: AccountId = AccountId::new([0u8; 32]);
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) const CONST_PREDICATE: PredicateId = PredicateId(100);
-
-#[allow(dead_code)]
-pub(crate) const COIN_PREDICATE: PredicateId =
-	<Runtime as pallet_objects::Config>::CoinPolicyPredicate::get();
-
-#[allow(dead_code)]
-pub(crate) const NONCE_PREDICATE: PredicateId =
-	<Runtime as pallet_objects::Config>::NoncePolicyPredicate::get();
-
-#[allow(dead_code)]
-pub(crate) const AFTER_TIME_PREDICATE: PredicateId = PredicateId(402);
-
-#[allow(dead_code)]
-pub(crate) const AFTER_BLOCK_PREDICATE: PredicateId = PredicateId(403);
-
-#[allow(dead_code)]
-pub(crate) const DEFAULT_SIGNATURE_PREDICATE: PredicateId =
-	<Runtime as pallet_objects::Config>::DefaultSignatureVerifyPredicate::get();
-
-#[allow(dead_code)]
-pub(crate) const PREIMAGE_PREDICATE: PredicateId = PredicateId(202);
-
-#[allow(dead_code)]
-pub(crate) const UNIQUE_PREDICATE: PredicateId =
-	<Runtime as pallet_objects::Config>::UniquePolicyPredicate::get();
-
 fn after_genesis() -> TestExternalities {
+	let _ = env_logger::try_init();
+
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()
 		.build_storage()
 		.unwrap();
 	pallet_objects::GenesisConfig::<Runtime> {
+		// if this file is not present during build and the build fails, ensure
+		// that stdpred is built with archive feature first. This will generate the
+		// file in the target directory.
+		// `cargo build -p opto-stdpred --release --features=archive`
 		stdpred: include_bytes!("../../../../../../target/opto-stdpred.car")
 			.to_vec(),
 		objects: vec![],
@@ -67,6 +45,8 @@ fn after_genesis() -> TestExternalities {
 }
 
 fn empty_genesis() -> TestExternalities {
+	let _ = env_logger::try_init();
+
 	let mut ext = TestExternalities::new_empty();
 	ext.execute_with(|| {
 		pallet_objects::Timestamp::<Runtime>::insert(0, 0);

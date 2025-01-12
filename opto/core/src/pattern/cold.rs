@@ -253,7 +253,7 @@ impl IntoFilter<Cold, private::Sentinel<()>> for Cold {
 	}
 }
 
-impl IntoFilter<Cold, Anything> for Anything {
+impl IntoFilter<Cold> for Anything {
 	fn into_filter(self) -> Cold {
 		Cold(Expression::from(Condition {
 			op: Comparison::Equal,
