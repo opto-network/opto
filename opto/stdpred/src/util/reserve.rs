@@ -1,17 +1,18 @@
 use {
-	crate::utils::{
-		is_ephemeral,
-		is_only_policy_of_this_type,
-		is_policy,
-		is_the_only_policy,
+	crate::{
+		utils::{
+			is_ephemeral,
+			is_only_policy_of_this_type,
+			is_policy,
+			is_the_only_policy,
+		},
+		AccountId,
 	},
 	opto_core::*,
 	opto_onchain_macros::predicate,
 	scale::{Decode, Encode},
 	scale_info::TypeInfo,
 };
-
-pub type AccountId = [u8; 32];
 
 pub const ONE_MINUTE: u32 = 60;
 pub const ONE_HOUR: u32 = 60 * ONE_MINUTE;

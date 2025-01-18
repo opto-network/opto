@@ -1,6 +1,6 @@
 use {
 	super::*,
-	model::{objects::ActiveObject, storage},
+	model::{objects::model::ActiveObject, storage},
 	opto_core::{Digest, Object, PredicateId},
 	subxt::utils::AccountId32,
 };
@@ -11,16 +11,13 @@ impl ReadOnlyClient for Client {
 	async fn object(
 		&self,
 		digest: &Digest,
-	) -> Result<Option<(Object, u32)>, Self::Error> {
+	) -> Result<Option<ActiveObject>, Self::Error> {
 		let key = storage().objects().objects(digest);
-		let Some(ActiveObject {
-			object,
-			instance_count,
-		}) = self.storage().await?.fetch(&key).await?
-		else {
+		let Some(object) = self.storage().await?.fetch(&key).await? else {
 			return Ok(None);
 		};
-		Ok(Some((object, instance_count)))
+
+		Ok(Some(object))
 	}
 
 	async fn unique(
@@ -35,7 +32,7 @@ impl ReadOnlyClient for Client {
 		self
 			.object(&digest)
 			.await
-			.map(|res| res.map(|(object, _)| object))
+			.map(|res| res.map(|object| object.content))
 	}
 
 	async fn predicate(

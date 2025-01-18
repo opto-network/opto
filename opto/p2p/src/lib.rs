@@ -22,7 +22,7 @@ use {
 		TransportError,
 	},
 	log::{debug, info},
-	opto_core::{Object, Transition},
+	opto_core::{Digest, Object, PredicateId, Transition},
 	scale::{Decode, Encode},
 	std::sync::OnceLock,
 	thiserror::Error,
@@ -43,11 +43,13 @@ pub struct Config {
 	pub bootstrap: Vec<Multiaddr>,
 	pub idle_timeout: std::time::Duration,
 	pub kad_query_timeout: std::time::Duration,
+	pub network_id: String,
 }
 
 impl Default for Config {
 	fn default() -> Self {
 		Self {
+			network_id: "mainnet".to_string(),
 			idle_timeout: std::time::Duration::from_secs(60),
 			kad_query_timeout: std::time::Duration::from_secs(5 * 60),
 			bootstrap: vec![
@@ -64,6 +66,29 @@ impl Default for Config {
 				.into_iter()
 				.map(|addr| addr.parse().unwrap())
 				.collect(),
+		}
+	}
+}
+
+impl Config {
+	pub fn devnet() -> Self {
+		Self {
+			network_id: "devnet".to_string(),
+			..Default::default()
+		}
+	}
+
+	pub fn testnet() -> Self {
+		Self {
+			network_id: "testnet".to_string(),
+			..Default::default()
+		}
+	}
+
+	pub fn network(name: impl Into<String>) -> Self {
+		Self {
+			network_id: name.into(),
+			..Default::default()
 		}
 	}
 }
@@ -89,6 +114,8 @@ pub enum SetupError {
 #[derive(Encode, Decode, Debug)]
 pub enum NetworkEvent {
 	StateTransitioned(Transition),
+	ObjectReserved(Digest),
+	PredicateInstalled(PredicateId),
 	Disconnected,
 }
 
@@ -161,9 +188,29 @@ impl Network {
 
 		info!("Local p2p identity: {}", swarm.local_peer_id());
 
-		swarm.behaviour_mut().gossipsub.subscribe(
-			OBJECTS_TOPIC.get_or_init(|| Sha256Topic::new("/opto/objects")),
-		)?;
+		// blockchain events, emitted by validator nodes
+		swarm
+			.behaviour_mut()
+			.gossipsub
+			.subscribe(OBJECTS_TOPIC.get_or_init(|| {
+				Sha256Topic::new(format!("/opto/{}/events", config.network_id))
+			}))?;
+
+		// additional metadata for intent solvers
+		swarm
+			.behaviour_mut()
+			.gossipsub
+			.subscribe(OBJECTS_TOPIC.get_or_init(|| {
+				Sha256Topic::new(format!("/opto/{}/meta", config.network_id))
+			}))?;
+
+		// decentralized state queries
+		swarm
+			.behaviour_mut()
+			.gossipsub
+			.subscribe(OBJECTS_TOPIC.get_or_init(|| {
+				Sha256Topic::new(format!("/opto/{}/queries", config.network_id))
+			}))?;
 
 		// listen on configured addresses
 		for addr in config.listen_on {

@@ -2,7 +2,10 @@ use {
 	crate::signer::sr25519,
 	core::future::Future,
 	futures::Stream,
-	model::model::system::events::extrinsic_failed::DispatchError,
+	model::{
+		model::system::events::extrinsic_failed::DispatchError,
+		objects::model::ActiveObject,
+	},
 	opto_core::*,
 	scale::Encode,
 	std::sync::Arc,
@@ -42,7 +45,7 @@ pub trait ReadOnlyClient {
 	fn object(
 		&self,
 		digest: &Digest,
-	) -> impl Future<Output = Result<Option<(Object, u32)>, Self::Error>>;
+	) -> impl Future<Output = Result<Option<ActiveObject>, Self::Error>>;
 
 	/// Retreives an object by its reserved uniqueness.
 	fn unique(

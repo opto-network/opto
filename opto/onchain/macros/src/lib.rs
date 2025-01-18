@@ -13,7 +13,6 @@ mod gen;
 mod valid;
 
 static mut INDEX: BTreeMap<String, u32> = BTreeMap::new();
-static mut INDEG_GENERATED: bool = false;
 
 #[proc_macro_attribute]
 pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
@@ -42,12 +41,6 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 	let env_code = include_str!("env.rs.txt")
 		.replace("#core_crate", crate_name.to_string().as_str());
 	let env_code: proc_macro2::TokenStream = env_code.parse().unwrap();
-
-	if unsafe { INDEG_GENERATED } {
-		panic!(
-			"predicates_index!() must be called after all #[predicate] declarations"
-		);
-	}
 
 	// keep track of all registered predicates
 	unsafe { INDEX.insert(item_fn_name.to_string().to_uppercase(), id_u32) };
@@ -106,8 +99,6 @@ pub fn predicates_index(args: TokenStream) -> TokenStream {
 		};
 		output.push(item);
 	}
-
-	unsafe { INDEG_GENERATED = true };
 
 	quote! {
 		#(#output)*

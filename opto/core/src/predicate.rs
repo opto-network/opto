@@ -1,7 +1,7 @@
 use {
 	alloc::vec::Vec,
+	codec::{Decode, Encode},
 	derive_more::derive::{Display, From, Into},
-	scale::{Decode, Encode},
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,

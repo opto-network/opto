@@ -1,4 +1,7 @@
-pub use pallet::*;
+pub use {
+	model::{ActiveObject, Hold},
+	pallet::*,
+};
 use {
 	opto_core::*,
 	scale::{Decode, Encode},

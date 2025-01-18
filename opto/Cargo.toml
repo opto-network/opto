@@ -22,7 +22,7 @@ path = "src/main.rs"
 required-features = ["std"]
 
 [features]
-default = ["chain", "beacon"]
+default = []
 std = [
   "tokio",
   "log",
@@ -36,7 +36,7 @@ std = [
 chain = ["std", "opto-chain", "p2p", "clap"]
 p2p = ["std", "opto-p2p"]
 beacon = ["std", "opto-beacon", "p2p", "clap"]
-offchain-sdk = ["opto-offchain"]
+offchain-sdk = ["std", "opto-offchain"]
 onchain-sdk = ["opto-onchain"]
 build = ["opto-onchain", "opto-onchain/build"]
 test = ["opto-core/test"]

@@ -79,7 +79,7 @@ fn can_create_reservation() {
 			digest
 		));
 
-		// ensure the reservation deposed was fronzen on bob's account
+		// ensure the reservation deposit was fronzen on bob's account
 		assert_eq!(
 			pallet_balances::Pallet::<Runtime>::free_balance(
 				AccountKeyring::Bob.to_account_id(),

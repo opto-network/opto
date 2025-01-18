@@ -26,6 +26,8 @@ pub mod util;
 #[derive(Debug)]
 pub struct PredicateNotFound;
 
+pub type AccountId = [u8; 32];
+
 /// A functor that can be used to instantiate a state transition that uses
 /// native implementations of predicates. This is used in tests and native
 /// compute nodes. Predicates produced using this factory are more performant,
