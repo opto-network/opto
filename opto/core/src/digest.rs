@@ -1,12 +1,12 @@
 pub use blake2::Digest as DigestBuilder;
 use {
+	crate::codec::{ConstEncodedLen, Decode, Encode, MaxEncodedLen},
 	core::{
 		fmt::{Debug, Display},
 		hash::Hash,
 		ops::Deref,
 	},
 	derive_more::derive::From,
-	scale::{ConstEncodedLen, Decode, Encode, MaxEncodedLen},
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,

@@ -28,7 +28,7 @@ macro_rules! debug {
           #[cfg(any(test, feature = "std"))]
 					let s = format!("[{}:{}] {s}", file!(), line!());
           #[cfg(any(test, feature = "std"))]
-          eprintln!("{s}");
+          println!("{s}");
         }
     };
 }

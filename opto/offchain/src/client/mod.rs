@@ -3,11 +3,14 @@ use {
 	core::future::Future,
 	futures::Stream,
 	model::{
-		model::system::events::extrinsic_failed::DispatchError,
-		objects::model::ActiveObject,
+		model::{
+			objects::storage::types::timestamp::Timestamp,
+			system::events::extrinsic_failed::DispatchError,
+		},
+		objects::{model::ActiveObject, pallet::Event},
 	},
 	opto_core::*,
-	scale::Encode,
+	scale::{Decode, Encode},
 	std::sync::Arc,
 	subxt::{
 		storage::Storage,
@@ -17,6 +20,7 @@ use {
 		OnlineClient,
 		SubstrateConfig,
 	},
+	tokio_stream::StreamExt,
 };
 
 pub mod model;
@@ -29,13 +33,71 @@ pub use futures;
 type AssetId = u32;
 type Balance = u64;
 
+#[derive(Debug, Clone, PartialEq, Encode, Decode)]
+pub struct Reservation {
+	pub object: Digest,
+	pub until: Timestamp,
+	pub by: AccountId32,
+}
+
+#[derive(Debug, Clone, PartialEq, Encode, Decode)]
+pub struct Release {
+	pub object: Digest,
+	pub by: AccountId32,
+	pub consumed: bool,
+}
+
 pub trait StreamingClient {
 	type Error;
 
 	/// Returns a stream of state transitions.
 	fn transitions(
 		&self,
-	) -> impl Stream<Item = Result<Transition<Compact>, Self::Error>>;
+	) -> impl Stream<Item = Result<Transition<Compact>, Self::Error>> {
+		self.events().filter_map(|event| match event {
+			Ok(Event::StateTransitioned { transition }) => Some(Ok(transition)),
+			_ => None,
+		})
+	}
+
+	/// Returns a stream of notifications about object reservations
+	fn reservations(
+		&self,
+	) -> impl Stream<Item = Result<Reservation, Self::Error>> {
+		self.events().filter_map(|event| match event {
+			Ok(Event::ObjectReserved { object, by, until }) => {
+				Some(Ok(Reservation { object, by, until }))
+			}
+			_ => None,
+		})
+	}
+
+	/// Returns a stream of notifications about object reservation releases
+	fn releases(&self) -> impl Stream<Item = Result<Release, Self::Error>> {
+		self.events().filter_map(|event| match event {
+			Ok(Event::ReservationReleased {
+				object,
+				by,
+				consumed,
+			}) => Some(Ok(Release {
+				object,
+				by,
+				consumed,
+			})),
+			_ => None,
+		})
+	}
+
+	/// Returns a stream of notifications about installed predicates
+	fn predicates(&self) -> impl Stream<Item = Result<PredicateId, Self::Error>> {
+		self.events().filter_map(|event| match event {
+			Ok(Event::PredicateInstalled { id }) => Some(Ok(id)),
+			_ => None,
+		})
+	}
+
+	/// Returns a stream of all object events that occured on-chain.
+	fn events(&self) -> impl Stream<Item = Result<Event, Self::Error>> + Unpin;
 }
 
 pub trait ReadOnlyClient {

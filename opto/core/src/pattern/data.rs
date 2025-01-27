@@ -1,10 +1,10 @@
 use {
 	super::{Filter, Hot, IntoFilter},
+	crate::codec::{Decode, Encode},
 	alloc::{
 		string::{String, ToString},
 		vec::Vec,
 	},
-	scale::{Decode, Encode},
 };
 
 #[derive(Clone, Debug)]

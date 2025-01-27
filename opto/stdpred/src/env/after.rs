@@ -36,22 +36,15 @@ pub fn after_block(
 
 #[cfg(test)]
 mod test {
-	use {
-		super::*,
-		crate::native_impl_factory,
-		opto_core::test::*,
-		scale::Encode,
-	};
+	use {super::*, crate::native_impl_factory, opto_core::test::*};
 
 	#[test]
 	fn after_time() {
 		let locked_object = ObjectBuilder::new()
 			.with_unlock(
-				Predicate {
-					id: PredicateId(402),
-					params: 6000.encode(),
-				}
-				.into(),
+				crate::ids::AFTER_TIME
+					.params(Duration::from_secs(6000))
+					.into(),
 			)
 			.build();
 
@@ -105,13 +98,7 @@ mod test {
 	#[test]
 	fn after_block() {
 		let locked_object = ObjectBuilder::new()
-			.with_unlock(
-				Predicate {
-					id: PredicateId(403),
-					params: 60.encode(),
-				}
-				.into(),
-			)
+			.with_unlock(crate::ids::AFTER_BLOCK.params(60u32).into())
 			.build();
 
 		let transition = Transition {

@@ -1,6 +1,7 @@
 use {
 	crate::{
 		alloc::vec::Vec,
+		codec::{Decode, Encode},
 		digest::DigestBuilder,
 		env::Environment,
 		eval::{Context, InUse},
@@ -11,7 +12,6 @@ use {
 		Predicate,
 	},
 	core::fmt::Debug,
-	scale::{Decode, Encode},
 	scale_info::TypeInfo,
 };
 

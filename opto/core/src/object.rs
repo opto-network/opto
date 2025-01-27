@@ -1,12 +1,14 @@
 use {
 	super::Expression,
-	crate::Predicate,
+	crate::{
+		codec::{Decode, Encode, EncodeLike},
+		Predicate,
+	},
 	alloc::{format, vec::Vec},
 	core::{
 		fmt::{Debug, Formatter},
 		hash::Hash,
 	},
-	scale::{self, Decode, Encode, EncodeLike},
 	scale_info::TypeInfo,
 };
 

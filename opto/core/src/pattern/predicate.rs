@@ -1,11 +1,14 @@
 use {
 	super::{private, Filter, Hot, IntoFilter},
-	crate::{Predicate, PredicateId},
+	crate::{
+		codec::{Decode, Encode},
+		Predicate,
+		PredicateId,
+	},
 	alloc::{
 		string::{String, ToString},
 		vec::Vec,
 	},
-	scale::{Decode, Encode},
 };
 
 /// A filter that matches predicates.

@@ -7,6 +7,11 @@ async fn main() -> anyhow::Result<()> {
 	let opts = opts::Opts::parse();
 	opts.setup_logging_auto();
 
+	#[cfg(not(any(feature = "beacon", feature = "chain")))]
+	compile_error!(
+		"At least one of the CLI features `chain` or `beacon` must be enabled"
+	);
+
 	match opts.command {
 		#[cfg(feature = "chain")]
 		opts::Command::Chain(opts) => opto_chain::start(opts).await,

@@ -1,9 +1,11 @@
 use {
 	super::{private, Anything, Filter, IntoFilter},
-	crate::Expression,
+	crate::{
+		codec::{Decode, Encode},
+		Expression,
+	},
 	alloc::{format, string::ToString, vec::Vec},
 	core::ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo},
-	scale::{Decode, Encode},
 };
 
 #[derive(Clone, Encode, Decode, PartialEq)]

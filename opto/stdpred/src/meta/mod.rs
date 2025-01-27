@@ -69,3 +69,17 @@ pub fn memo(
 	ensure!(len_range.contains(&params.len()));
 	true
 }
+
+/// A multiaddress.
+#[predicate(id = 504, core_crate = opto_core)]
+pub fn appid(
+	ctx: Context<'_, impl Environment>,
+	_: &Transition<Expanded>,
+	params: &[u8],
+) -> bool {
+	ensure!(is_policy(&ctx));
+	ensure!(!params.is_empty());
+	ensure!(params.len() <= 32);
+
+	true
+}

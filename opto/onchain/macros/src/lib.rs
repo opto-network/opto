@@ -12,7 +12,8 @@ use {
 mod gen;
 mod valid;
 
-static mut INDEX: BTreeMap<String, u32> = BTreeMap::new();
+static mut INDEX: BTreeMap<&'static str, BTreeMap<String, u32>> =
+	BTreeMap::new();
 
 #[proc_macro_attribute]
 pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
@@ -43,7 +44,12 @@ pub fn predicate(args: TokenStream, item: TokenStream) -> TokenStream {
 	let env_code: proc_macro2::TokenStream = env_code.parse().unwrap();
 
 	// keep track of all registered predicates
-	unsafe { INDEX.insert(item_fn_name.to_string().to_uppercase(), id_u32) };
+	unsafe {
+		INDEX
+			.entry(env!("CARGO_CRATE_NAME"))
+			.or_default()
+			.insert(item_fn_name.to_string().to_uppercase(), id_u32)
+	};
 
 	let output = quote! {
 		#item
@@ -90,7 +96,9 @@ pub fn predicates_index(args: TokenStream) -> TokenStream {
 	let crate_name = syn::Ident::new(crate_name, Span::call_site());
 
 	let mut output = vec![];
-	for (name, id) in unsafe { INDEX.iter() } {
+	for (name, id) in
+		unsafe { INDEX.entry(env!("CARGO_CRATE_NAME")).or_default().iter() }
+	{
 		let name = syn::Ident::new(name, Span::call_site());
 		let id_lit = Literal::u32_suffixed(*id);
 		let item = quote! {

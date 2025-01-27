@@ -19,10 +19,10 @@ crate-type = ["rlib"]
 [[bin]]
 name = "opto"
 path = "src/main.rs"
-required-features = ["std"]
+required-features = ["cli"]
 
 [features]
-default = []
+default = ["cli-all"]
 std = [
   "tokio",
   "log",
@@ -33,9 +33,11 @@ std = [
   "opto-core/graph",
   "thiserror",
 ]
-chain = ["std", "opto-chain", "p2p", "clap"]
+cli = ["std", "clap"]
+cli-all = ["cli", "chain", "beacon"]
+chain = ["std", "cli", "opto-chain", "p2p"]
 p2p = ["std", "opto-p2p"]
-beacon = ["std", "opto-beacon", "p2p", "clap"]
+beacon = ["std", "cli", "opto-beacon", "p2p"]
 offchain-sdk = ["std", "opto-offchain"]
 onchain-sdk = ["opto-onchain"]
 build = ["opto-onchain", "opto-onchain/build"]

@@ -1,6 +1,6 @@
 use {
+	crate::codec::{Decode, Encode},
 	alloc::vec::Vec,
-	codec::{Decode, Encode},
 	derive_more::derive::{Display, From, Into},
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,

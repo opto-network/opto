@@ -9,12 +9,16 @@ use {
 		PoliciesPattern,
 		UnlockPattern,
 	},
-	crate::{Hashable, Object, Predicate},
+	crate::{
+		codec::{Decode, Encode},
+		Hashable,
+		Object,
+		Predicate,
+	},
 	alloc::{
 		string::{String, ToString},
 		vec::Vec,
 	},
-	scale::{Decode, Encode},
 };
 
 /// A single named capture inside an object.
@@ -382,7 +386,7 @@ impl<F: Filter> ObjectsSetPattern<F> {
 	/// This method will return captures for patterns that:
 	///  - are named object patterns and match the object
 	///  - are unnamed object patterns but have named captures
-	pub fn capture<'a, 'b>(
+	pub fn captures<'a, 'b>(
 		&'a self,
 		objects: &'b [Object],
 	) -> Vec<ObjectCapture<'a, 'b>> {

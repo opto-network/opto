@@ -1,5 +1,6 @@
 use {
 	crate::{
+		codec::{Decode, Encode},
 		env::Environment,
 		eval::{Context, InUse},
 		expression::Expression,
@@ -9,7 +10,6 @@ use {
 		Transition,
 	},
 	alloc::vec::Vec,
-	scale::{Decode, Encode},
 	scale_decode::DecodeAsType,
 	scale_encode::EncodeAsType,
 	scale_info::TypeInfo,

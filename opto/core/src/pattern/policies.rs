@@ -4,9 +4,11 @@ use {
 		Filter,
 		Hot,
 	},
-	crate::Predicate,
+	crate::{
+		codec::{Decode, Encode},
+		Predicate,
+	},
 	alloc::vec::Vec,
-	scale::{Decode, Encode},
 };
 
 /// The mode in which the policies pattern will match.

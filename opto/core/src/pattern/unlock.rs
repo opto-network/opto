@@ -3,10 +3,15 @@ use {
 		predicate::{IntoPredicatePattern, PredicatePattern},
 		Filter,
 	},
-	crate::{Expression, Op, Predicate, PredicateId},
+	crate::{
+		codec::{Decode, Encode, Input},
+		Expression,
+		Op,
+		Predicate,
+		PredicateId,
+	},
 	alloc::vec::Vec,
 	core::ops::Range,
-	scale::{Decode, Encode, Input},
 };
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]

@@ -1,7 +1,7 @@
 use {
 	super::{private, Anything, Filter, IntoFilter},
+	crate::codec::Decode,
 	alloc::rc::Rc,
-	scale::Decode,
 };
 
 type HotCaptureFn = Rc<dyn Fn(&[u8]) -> bool>;

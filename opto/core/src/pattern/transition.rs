@@ -5,9 +5,13 @@ use {
 		Hot,
 		ObjectsSetPattern,
 	},
-	crate::{Compact, Digest, Transition},
+	crate::{
+		codec::{Decode, Encode},
+		Compact,
+		Digest,
+		Transition,
+	},
 	alloc::vec::Vec,
-	scale::{Decode, Encode},
 };
 
 #[derive(Debug, Clone, Hash, PartialEq)]
@@ -164,13 +168,13 @@ impl<F: Filter> TransitionPattern<F> {
 		}
 
 		if let Some(outputs) = self.outputs.as_ref() {
-			for capture in outputs.capture(&transition.outputs) {
+			for capture in outputs.captures(&transition.outputs) {
 				captures.push(TransitionCapture::Output(capture));
 			}
 		}
 
 		if let Some(ephemerals) = self.ephemerals.as_ref() {
-			for capture in ephemerals.capture(&transition.ephemerals) {
+			for capture in ephemerals.captures(&transition.ephemerals) {
 				captures.push(TransitionCapture::Ephemeral(capture));
 			}
 		}

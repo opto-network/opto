@@ -1,14 +1,16 @@
 #[cfg(feature = "graph")]
 use petgraph::prelude::*;
 use {
-	crate::predicate::Predicate,
+	crate::{
+		codec::{Decode, Encode, EncodeLike, Output},
+		predicate::Predicate,
+	},
 	alloc::{string::String, vec::Vec},
 	core::{
 		fmt::{Debug, Display},
 		hash::Hash,
 		ops::{Index, Not},
 	},
-	scale::{Decode, Encode, EncodeLike, Output},
 	scale_info::{
 		build::{Fields, Variants},
 		TypeInfo,
